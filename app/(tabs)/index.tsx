@@ -30,7 +30,7 @@ export default function HomeScreen() {
   ];
 
   const quickActions = [
-    { icon: '➕', label: 'Đặt sân mới', color: Colors.primary, action: () => router.push('/') },
+    { icon: '➕', label: 'Đặt sân mới', color: Colors.primary, action: () => router.push('/courts') },
     { icon: '📊', label: 'Thống kê', color: Colors.success, action: () => { } },
     { icon: '💵', label: 'Thu chi', color: Colors.error, action: () => { } },
     { icon: '⚙️', label: 'Cài đặt', color: Colors.textSecondary, action: () => { } },
@@ -46,7 +46,7 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Xin chào 👋</Text>
           <Text style={styles.userName}>Quản lý sân</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/')}>
+        <TouchableOpacity onPress={() => router.push('/profile')}>
           <Avatar name="Admin" size={50} />
         </TouchableOpacity>
       </View>
