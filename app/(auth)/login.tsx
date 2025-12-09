@@ -166,10 +166,11 @@ export default function LoginScreen() {
                         </View>
 
                         {/* Forgot Password */}
-                        <TouchableOpacity style={styles.forgotPassword}>
-                            <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
-                        </TouchableOpacity>
-
+                        <Link href="/(auth)/forgot-password" asChild>
+                            <TouchableOpacity style={styles.forgotPassword}>
+                                <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+                            </TouchableOpacity>
+                        </Link>
                         {/* Login Button */}
                         <TouchableOpacity
                             style={styles.loginButton}
