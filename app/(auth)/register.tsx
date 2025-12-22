@@ -1,10 +1,13 @@
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
+import { register } from '@/services/authService';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
     Alert,
+    Dimensions,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -15,14 +18,15 @@ import {
     View,
 } from 'react-native';
 
+const { width } = Dimensions.get('window');
+
 export default function RegisterScreen() {
-    const [formData, setFormData] = useState({
-        fullName: '',
-        email: '',
-        phone: '',
-        password: '',
-        confirmPassword: '',
-    });
+    const { login: setAuthUser } = useAuth();
+    const [fullName, setFullName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errors, setErrors] = useState({
@@ -33,6 +37,7 @@ export default function RegisterScreen() {
         confirmPassword: '',
     });
     const [focusedInput, setFocusedInput] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const validateEmail = (email: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,11 +45,11 @@ export default function RegisterScreen() {
     };
 
     const validatePhone = (phone: string) => {
-        const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+        const phoneRegex = /^(0|\+84)[0-9]{9}$/;
         return phoneRegex.test(phone);
     };
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
         let valid = true;
         const newErrors = {
             fullName: '',
@@ -54,66 +59,84 @@ export default function RegisterScreen() {
             confirmPassword: '',
         };
 
-        if (!formData.fullName.trim()) {
+        // Validate Full Name
+        if (!fullName.trim()) {
             newErrors.fullName = 'Vui lòng nhập họ tên';
             valid = false;
-        } else if (formData.fullName.trim().length < 3) {
-            newErrors.fullName = 'Họ tên phải có ít nhất 3 ký tự';
+        } else if (fullName.trim().length < 2) {
+            newErrors.fullName = 'Họ tên phải có ít nhất 2 ký tự';
             valid = false;
         }
 
-        if (!formData.email) {
+        // Validate Email
+        if (!email.trim()) {
             newErrors.email = 'Vui lòng nhập email';
             valid = false;
-        } else if (!validateEmail(formData.email)) {
+        } else if (!validateEmail(email.trim())) {
             newErrors.email = 'Email không hợp lệ';
             valid = false;
         }
 
-        if (!formData.phone) {
+        // Validate Phone
+        if (!phone.trim()) {
             newErrors.phone = 'Vui lòng nhập số điện thoại';
             valid = false;
-        } else if (!validatePhone(formData.phone)) {
-            newErrors.phone = 'Số điện thoại không hợp lệ';
+        } else if (!validatePhone(phone.trim())) {
+            newErrors.phone = 'Số điện thoại không hợp lệ (VD: 0912345678)';
             valid = false;
         }
 
-        if (!formData.password) {
+        // Validate Password
+        if (!password) {
             newErrors.password = 'Vui lòng nhập mật khẩu';
             valid = false;
-        } else if (formData.password.length < 6) {
+        } else if (password.length < 6) {
             newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
             valid = false;
         }
 
-        if (!formData.confirmPassword) {
+        // Validate Confirm Password
+        if (!confirmPassword) {
             newErrors.confirmPassword = 'Vui lòng xác nhận mật khẩu';
             valid = false;
-        } else if (formData.password !== formData.confirmPassword) {
-            newErrors.confirmPassword = 'Mật khẩu không khớp';
+        } else if (password !== confirmPassword) {
+            newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
             valid = false;
         }
 
         setErrors(newErrors);
+        if (!valid) return;
 
-        if (valid) {
-            Alert.alert(
-                'Thành công',
-                'Đăng ký tài khoản thành công!',
-                [
-                    {
-                        text: 'Đăng nhập ngay',
-                        onPress: () => router.replace('/(auth)/login'),
-                    },
-                ]
-            );
-        }
-    };
+        setLoading(true);
 
-    const updateFormData = (field: string, value: string) => {
-        setFormData({ ...formData, [field]: value });
-        if (errors[field as keyof typeof errors]) {
-            setErrors({ ...errors, [field]: '' });
+        try {
+            const response = await register({
+                fullName: fullName.trim(),
+                email: email.trim(),
+                phone: phone.trim(),
+                password,
+            });
+
+            console.log('✅ REGISTER SUCCESS:', response);
+
+            // Cập nhật auth context
+            setAuthUser(response.data.user);
+
+            // Router sẽ tự động redirect nhờ useEffect trong _layout.tsx
+            console.log('🚀 Auth updated, waiting for redirect...');
+        } catch (error: any) {
+            console.error('❌ REGISTER ERROR:', error);
+
+            const errorMessage =
+                error.response?.data?.message || error.message || 'Đã có lỗi xảy ra';
+
+            if (Platform.OS === 'web') {
+                alert(`Lỗi đăng ký\n${errorMessage}`);
+            } else {
+                Alert.alert('Lỗi đăng ký', errorMessage);
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -130,11 +153,11 @@ export default function RegisterScreen() {
             >
                 <View style={styles.headerContent}>
                     <View style={styles.iconContainer}>
-                        <Text style={styles.icon}>✨</Text>
+                        <Text style={styles.icon}>🏸</Text>
                     </View>
                     <Text style={styles.headerTitle}>Tạo tài khoản mới</Text>
                     <Text style={styles.headerSubtitle}>
-                        Bắt đầu hành trình quản lý sân của bạn
+                        Đăng ký để bắt đầu quản lý sân cầu lông
                     </Text>
                 </View>
             </LinearGradient>
@@ -149,7 +172,7 @@ export default function RegisterScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     <View style={styles.formContainer}>
-                        {/* Full Name */}
+                        {/* Full Name Input */}
                         <View style={styles.inputWrapper}>
                             <Text style={styles.label}>Họ và tên</Text>
                             <View
@@ -164,11 +187,16 @@ export default function RegisterScreen() {
                                     style={styles.input}
                                     placeholder="Nguyễn Văn A"
                                     placeholderTextColor={Colors.textSecondary}
-                                    value={formData.fullName}
-                                    onChangeText={(text) => updateFormData('fullName', text)}
+                                    value={fullName}
+                                    onChangeText={(text) => {
+                                        setFullName(text);
+                                        if (errors.fullName)
+                                            setErrors({ ...errors, fullName: '' });
+                                    }}
                                     onFocus={() => setFocusedInput('fullName')}
                                     onBlur={() => setFocusedInput('')}
                                     autoCapitalize="words"
+                                    editable={!loading}
                                 />
                             </View>
                             {errors.fullName ? (
@@ -176,7 +204,7 @@ export default function RegisterScreen() {
                             ) : null}
                         </View>
 
-                        {/* Email */}
+                        {/* Email Input */}
                         <View style={styles.inputWrapper}>
                             <Text style={styles.label}>Email</Text>
                             <View
@@ -191,13 +219,17 @@ export default function RegisterScreen() {
                                     style={styles.input}
                                     placeholder="your@email.com"
                                     placeholderTextColor={Colors.textSecondary}
-                                    value={formData.email}
-                                    onChangeText={(text) => updateFormData('email', text)}
+                                    value={email}
+                                    onChangeText={(text) => {
+                                        setEmail(text);
+                                        if (errors.email) setErrors({ ...errors, email: '' });
+                                    }}
                                     onFocus={() => setFocusedInput('email')}
                                     onBlur={() => setFocusedInput('')}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                     autoComplete="email"
+                                    editable={!loading}
                                 />
                             </View>
                             {errors.email ? (
@@ -205,7 +237,7 @@ export default function RegisterScreen() {
                             ) : null}
                         </View>
 
-                        {/* Phone */}
+                        {/* Phone Input */}
                         <View style={styles.inputWrapper}>
                             <Text style={styles.label}>Số điện thoại</Text>
                             <View
@@ -220,12 +252,16 @@ export default function RegisterScreen() {
                                     style={styles.input}
                                     placeholder="0912345678"
                                     placeholderTextColor={Colors.textSecondary}
-                                    value={formData.phone}
-                                    onChangeText={(text) => updateFormData('phone', text)}
+                                    value={phone}
+                                    onChangeText={(text) => {
+                                        setPhone(text);
+                                        if (errors.phone) setErrors({ ...errors, phone: '' });
+                                    }}
                                     onFocus={() => setFocusedInput('phone')}
                                     onBlur={() => setFocusedInput('')}
                                     keyboardType="phone-pad"
-                                    maxLength={10}
+                                    autoComplete="tel"
+                                    editable={!loading}
                                 />
                             </View>
                             {errors.phone ? (
@@ -233,7 +269,7 @@ export default function RegisterScreen() {
                             ) : null}
                         </View>
 
-                        {/* Password */}
+                        {/* Password Input */}
                         <View style={styles.inputWrapper}>
                             <Text style={styles.label}>Mật khẩu</Text>
                             <View
@@ -246,18 +282,24 @@ export default function RegisterScreen() {
                                 <Text style={styles.inputIcon}>🔒</Text>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="Tối thiểu 6 ký tự"
+                                    placeholder="Nhập mật khẩu"
                                     placeholderTextColor={Colors.textSecondary}
-                                    value={formData.password}
-                                    onChangeText={(text) => updateFormData('password', text)}
+                                    value={password}
+                                    onChangeText={(text) => {
+                                        setPassword(text);
+                                        if (errors.password)
+                                            setErrors({ ...errors, password: '' });
+                                    }}
                                     onFocus={() => setFocusedInput('password')}
                                     onBlur={() => setFocusedInput('')}
                                     secureTextEntry={!showPassword}
                                     autoCapitalize="none"
+                                    editable={!loading}
                                 />
                                 <TouchableOpacity
                                     onPress={() => setShowPassword(!showPassword)}
                                     style={styles.eyeButton}
+                                    disabled={loading}
                                 >
                                     <Text style={styles.eyeIcon}>
                                         {showPassword ? '👁️' : '👁️‍🗨️'}
@@ -269,7 +311,7 @@ export default function RegisterScreen() {
                             ) : null}
                         </View>
 
-                        {/* Confirm Password */}
+                        {/* Confirm Password Input */}
                         <View style={styles.inputWrapper}>
                             <Text style={styles.label}>Xác nhận mật khẩu</Text>
                             <View
@@ -279,21 +321,29 @@ export default function RegisterScreen() {
                                     errors.confirmPassword && styles.inputError,
                                 ]}
                             >
-                                <Text style={styles.inputIcon}>🔐</Text>
+                                <Text style={styles.inputIcon}>🔒</Text>
                                 <TextInput
                                     style={styles.input}
                                     placeholder="Nhập lại mật khẩu"
                                     placeholderTextColor={Colors.textSecondary}
-                                    value={formData.confirmPassword}
-                                    onChangeText={(text) => updateFormData('confirmPassword', text)}
+                                    value={confirmPassword}
+                                    onChangeText={(text) => {
+                                        setConfirmPassword(text);
+                                        if (errors.confirmPassword)
+                                            setErrors({ ...errors, confirmPassword: '' });
+                                    }}
                                     onFocus={() => setFocusedInput('confirmPassword')}
                                     onBlur={() => setFocusedInput('')}
                                     secureTextEntry={!showConfirmPassword}
                                     autoCapitalize="none"
+                                    editable={!loading}
+                                    onSubmitEditing={handleRegister}
+                                    returnKeyType="done"
                                 />
                                 <TouchableOpacity
                                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                                     style={styles.eyeButton}
+                                    disabled={loading}
                                 >
                                     <Text style={styles.eyeIcon}>
                                         {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
@@ -307,32 +357,35 @@ export default function RegisterScreen() {
 
                         {/* Register Button */}
                         <TouchableOpacity
-                            style={styles.registerButton}
+                            style={[
+                                styles.registerButton,
+                                loading && styles.registerButtonDisabled,
+                            ]}
                             onPress={handleRegister}
                             activeOpacity={0.8}
+                            disabled={loading}
                         >
                             <LinearGradient
-                                colors={[Colors.gradient1, Colors.gradient2]}
+                                colors={
+                                    loading
+                                        ? [Colors.textSecondary, Colors.textSecondary]
+                                        : [Colors.gradient1, Colors.gradient2]
+                                }
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                                 style={styles.registerButtonGradient}
                             >
-                                <Text style={styles.registerButtonText}>Đăng ký</Text>
+                                <Text style={styles.registerButtonText}>
+                                    {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+                                </Text>
                             </LinearGradient>
                         </TouchableOpacity>
-
-                        {/* Terms */}
-                        <Text style={styles.termsText}>
-                            Bằng cách đăng ký, bạn đồng ý với{' '}
-                            <Text style={styles.termsLink}>Điều khoản dịch vụ</Text> và{' '}
-                            <Text style={styles.termsLink}>Chính sách bảo mật</Text>
-                        </Text>
 
                         {/* Login Link */}
                         <View style={styles.loginContainer}>
                             <Text style={styles.loginText}>Đã có tài khoản? </Text>
                             <Link href="/(auth)/login" asChild>
-                                <TouchableOpacity>
+                                <TouchableOpacity disabled={loading}>
                                     <Text style={styles.loginLink}>Đăng nhập ngay</Text>
                                 </TouchableOpacity>
                             </Link>
@@ -350,7 +403,7 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background,
     },
     header: {
-        paddingTop: 60,
+        paddingTop: Platform.OS === 'web' ? 40 : 60,
         paddingBottom: 40,
         paddingHorizontal: 24,
         borderBottomLeftRadius: 30,
@@ -387,12 +440,16 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
+        paddingBottom: Platform.OS === 'web' ? 40 : 20,
     },
     formContainer: {
         flex: 1,
         paddingHorizontal: 24,
         paddingTop: 32,
         paddingBottom: 24,
+        maxWidth: Platform.OS === 'web' ? 500 : '100%',
+        width: '100%',
+        alignSelf: 'center',
     },
     inputWrapper: {
         marginBottom: 20,
@@ -447,12 +504,15 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         overflow: 'hidden',
         marginTop: 8,
-        marginBottom: 16,
+        marginBottom: 24,
         elevation: 4,
         shadowColor: Colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
+    },
+    registerButtonDisabled: {
+        opacity: 0.6,
     },
     registerButtonGradient: {
         paddingVertical: 16,
@@ -463,17 +523,6 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         letterSpacing: 0.5,
-    },
-    termsText: {
-        textAlign: 'center',
-        fontSize: 13,
-        color: Colors.textSecondary,
-        marginBottom: 24,
-        lineHeight: 20,
-    },
-    termsLink: {
-        color: Colors.primary,
-        fontWeight: '600',
     },
     loginContainer: {
         flexDirection: 'row',

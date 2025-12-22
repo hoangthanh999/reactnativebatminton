@@ -1,6 +1,8 @@
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
+import { login } from '@/services/authService';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link, router } from 'expo-router';
+import { Link } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
@@ -19,26 +21,29 @@ import {
 const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
-    const [email, setEmail] = useState('');
+    const { login: setAuthUser } = useAuth();
+    const [emailOrPhone, setEmailOrPhone] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [errors, setErrors] = useState({ email: '', password: '' });
+    const [errors, setErrors] = useState({ emailOrPhone: '', password: '' });
     const [focusedInput, setFocusedInput] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const validateEmail = (email: string) => {
+    const validateEmailOrPhone = (input: string) => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
+        const phoneRegex = /^(0|\+84)[0-9]{9}$/;
+        return emailRegex.test(input) || phoneRegex.test(input);
     };
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         let valid = true;
-        const newErrors = { email: '', password: '' };
+        const newErrors = { emailOrPhone: '', password: '' };
 
-        if (!email) {
-            newErrors.email = 'Vui lòng nhập email';
+        if (!emailOrPhone.trim()) {
+            newErrors.emailOrPhone = 'Vui lòng nhập email hoặc số điện thoại';
             valid = false;
-        } else if (!validateEmail(email)) {
-            newErrors.email = 'Email không hợp lệ';
+        } else if (!validateEmailOrPhone(emailOrPhone.trim())) {
+            newErrors.emailOrPhone = 'Email hoặc số điện thoại không hợp lệ';
             valid = false;
         }
 
@@ -51,14 +56,34 @@ export default function LoginScreen() {
         }
 
         setErrors(newErrors);
+        if (!valid) return;
 
-        if (valid) {
-            Alert.alert('Thành công', 'Đăng nhập thành công!', [
-                {
-                    text: 'OK',
-                    onPress: () => router.replace('/(tabs)'),
-                },
-            ]);
+        setLoading(true);
+
+        try {
+            const response = await login(emailOrPhone.trim(), password);
+            console.log('✅ LOGIN SUCCESS:', response);
+
+            // Cập nhật auth context
+            setAuthUser(response.data.user);
+
+            // Router sẽ tự động redirect nhờ useEffect trong _layout.tsx
+            console.log('🚀 Auth updated, waiting for redirect...');
+        } catch (error: any) {
+            console.error('❌ LOGIN ERROR:', error);
+
+            const errorMessage =
+                error.response?.data?.message ||
+                error.message ||
+                'Sai email/số điện thoại hoặc mật khẩu';
+
+            if (Platform.OS === 'web') {
+                alert(`Lỗi đăng nhập\n${errorMessage}`);
+            } else {
+                Alert.alert('Lỗi đăng nhập', errorMessage);
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -94,35 +119,37 @@ export default function LoginScreen() {
                     showsVerticalScrollIndicator={false}
                 >
                     <View style={styles.formContainer}>
-                        {/* Email Input */}
+                        {/* Email/Phone Input */}
                         <View style={styles.inputWrapper}>
-                            <Text style={styles.label}>Email</Text>
+                            <Text style={styles.label}>Email hoặc Số điện thoại</Text>
                             <View
                                 style={[
                                     styles.inputContainer,
-                                    focusedInput === 'email' && styles.inputFocused,
-                                    errors.email && styles.inputError,
+                                    focusedInput === 'emailOrPhone' && styles.inputFocused,
+                                    errors.emailOrPhone && styles.inputError,
                                 ]}
                             >
                                 <Text style={styles.inputIcon}>📧</Text>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="your@email.com"
+                                    placeholder="your@email.com hoặc 0912345678"
                                     placeholderTextColor={Colors.textSecondary}
-                                    value={email}
+                                    value={emailOrPhone}
                                     onChangeText={(text) => {
-                                        setEmail(text);
-                                        if (errors.email) setErrors({ ...errors, email: '' });
+                                        setEmailOrPhone(text);
+                                        if (errors.emailOrPhone)
+                                            setErrors({ ...errors, emailOrPhone: '' });
                                     }}
-                                    onFocus={() => setFocusedInput('email')}
+                                    onFocus={() => setFocusedInput('emailOrPhone')}
                                     onBlur={() => setFocusedInput('')}
                                     keyboardType="email-address"
                                     autoCapitalize="none"
                                     autoComplete="email"
+                                    editable={!loading}
                                 />
                             </View>
-                            {errors.email ? (
-                                <Text style={styles.errorText}>{errors.email}</Text>
+                            {errors.emailOrPhone ? (
+                                <Text style={styles.errorText}>{errors.emailOrPhone}</Text>
                             ) : null}
                         </View>
 
@@ -144,16 +171,21 @@ export default function LoginScreen() {
                                     value={password}
                                     onChangeText={(text) => {
                                         setPassword(text);
-                                        if (errors.password) setErrors({ ...errors, password: '' });
+                                        if (errors.password)
+                                            setErrors({ ...errors, password: '' });
                                     }}
                                     onFocus={() => setFocusedInput('password')}
                                     onBlur={() => setFocusedInput('')}
                                     secureTextEntry={!showPassword}
                                     autoCapitalize="none"
+                                    editable={!loading}
+                                    onSubmitEditing={handleLogin}
+                                    returnKeyType="done"
                                 />
                                 <TouchableOpacity
                                     onPress={() => setShowPassword(!showPassword)}
                                     style={styles.eyeButton}
+                                    disabled={loading}
                                 >
                                     <Text style={styles.eyeIcon}>
                                         {showPassword ? '👁️' : '👁️‍🗨️'}
@@ -167,23 +199,34 @@ export default function LoginScreen() {
 
                         {/* Forgot Password */}
                         <Link href="/(auth)/forgot-password" asChild>
-                            <TouchableOpacity style={styles.forgotPassword}>
+                            <TouchableOpacity
+                                style={styles.forgotPassword}
+                                disabled={loading}
+                            >
                                 <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
                             </TouchableOpacity>
                         </Link>
+
                         {/* Login Button */}
                         <TouchableOpacity
-                            style={styles.loginButton}
+                            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
                             onPress={handleLogin}
                             activeOpacity={0.8}
+                            disabled={loading}
                         >
                             <LinearGradient
-                                colors={[Colors.gradient1, Colors.gradient2]}
+                                colors={
+                                    loading
+                                        ? [Colors.textSecondary, Colors.textSecondary]
+                                        : [Colors.gradient1, Colors.gradient2]
+                                }
                                 start={{ x: 0, y: 0 }}
                                 end={{ x: 1, y: 0 }}
                                 style={styles.loginButtonGradient}
                             >
-                                <Text style={styles.loginButtonText}>Đăng nhập</Text>
+                                <Text style={styles.loginButtonText}>
+                                    {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+                                </Text>
                             </LinearGradient>
                         </TouchableOpacity>
 
@@ -196,11 +239,19 @@ export default function LoginScreen() {
 
                         {/* Social Login Buttons */}
                         <View style={styles.socialContainer}>
-                            <TouchableOpacity style={styles.socialButton}>
+                            <TouchableOpacity
+                                style={styles.socialButton}
+                                disabled={loading}
+                                onPress={() => alert('Tính năng đang phát triển')}
+                            >
                                 <Text style={styles.socialIcon}>📱</Text>
                                 <Text style={styles.socialText}>Google</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.socialButton}>
+                            <TouchableOpacity
+                                style={styles.socialButton}
+                                disabled={loading}
+                                onPress={() => alert('Tính năng đang phát triển')}
+                            >
                                 <Text style={styles.socialIcon}>👤</Text>
                                 <Text style={styles.socialText}>Facebook</Text>
                             </TouchableOpacity>
@@ -210,7 +261,7 @@ export default function LoginScreen() {
                         <View style={styles.registerContainer}>
                             <Text style={styles.registerText}>Chưa có tài khoản? </Text>
                             <Link href="/(auth)/register" asChild>
-                                <TouchableOpacity>
+                                <TouchableOpacity disabled={loading}>
                                     <Text style={styles.registerLink}>Đăng ký ngay</Text>
                                 </TouchableOpacity>
                             </Link>
@@ -223,12 +274,13 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+    // ... giữ nguyên styles
     container: {
         flex: 1,
         backgroundColor: Colors.background,
     },
     header: {
-        paddingTop: 60,
+        paddingTop: Platform.OS === 'web' ? 40 : 60,
         paddingBottom: 40,
         paddingHorizontal: 24,
         borderBottomLeftRadius: 30,
@@ -265,12 +317,16 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
+        paddingBottom: Platform.OS === 'web' ? 40 : 0,
     },
     formContainer: {
         flex: 1,
         paddingHorizontal: 24,
         paddingTop: 32,
         paddingBottom: 24,
+        maxWidth: Platform.OS === 'web' ? 500 : '100%',
+        width: '100%',
+        alignSelf: 'center',
     },
     inputWrapper: {
         marginBottom: 20,
@@ -339,6 +395,9 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
+    },
+    loginButtonDisabled: {
+        opacity: 0.6,
     },
     loginButtonGradient: {
         paddingVertical: 16,
