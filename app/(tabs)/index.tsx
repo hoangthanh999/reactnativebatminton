@@ -1,11 +1,18 @@
+// app/(tabs)/index.tsx
+import BookingCard from '@/components/bookings/BookingCard';
 import Avatar from '@/components/ui/Avatar';
 import Card from '@/components/ui/Card';
 import { Colors } from '@/constants/Colors';
+import { Booking, bookingService } from '@/services/bookingService';
+import { UserProfile, userService } from '@/services/userService';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Dimensions,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,25 +23,134 @@ import {
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const stats = [
-    { icon: '🏸', label: 'Sân đang hoạt động', value: '12' },
-    { icon: '📅', label: 'Đặt sân hôm nay', value: '8' },
-    { icon: '💰', label: 'Doanh thu tháng', value: '25M' },
-    { icon: '👥', label: 'Khách hàng', value: '156' },
-  ];
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const recentBookings = [
-    { id: 1, court: 'Sân 1', time: '08:00 - 10:00', customer: 'Nguyễn Văn A', status: 'confirmed' },
-    { id: 2, court: 'Sân 3', time: '10:00 - 12:00', customer: 'Trần Thị B', status: 'pending' },
-    { id: 3, court: 'Sân 2', time: '14:00 - 16:00', customer: 'Lê Văn C', status: 'confirmed' },
-  ];
+  // Stats
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    confirmedBookings: 0,
+    pendingBookings: 0,
+    completedBookings: 0,
+  });
+
+  const loadUserData = useCallback(async () => {
+    try {
+      const userData = await userService.getCurrentUser();
+      setUser(userData);
+    } catch (error) {
+      console.error('Load user error:', error);
+    }
+  }, []);
+
+  const loadBookings = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const response = await bookingService.getMyBookings(0, 5);
+
+      if (response.success) {
+        const bookingData = response.data.content;
+        setBookings(bookingData);
+
+        // Calculate stats
+        setStats({
+          totalBookings: response.data.totalElements,
+          confirmedBookings: bookingData.filter((b: Booking) => b.status === 'CONFIRMED').length,
+          pendingBookings: bookingData.filter((b: Booking) => b.status === 'PENDING').length,
+          completedBookings: bookingData.filter((b: Booking) => b.status === 'COMPLETED').length,
+        });
+      }
+    } catch (error: any) {
+      console.error('Load bookings error:', error);
+      // Không hiển thị alert nếu chưa đăng nhập
+      if (error.response?.status !== 401) {
+        Alert.alert('Lỗi', 'Không thể tải danh sách đặt sân');
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUserData();
+    loadBookings();
+  }, [loadUserData, loadBookings]);
+
+  const onRefresh = useCallback(() => {
+    loadUserData();
+    loadBookings(true);
+  }, [loadUserData, loadBookings]);
+
+  const navigateToBookings = useCallback(() => {
+    // Sử dụng replace thay vì push cho tab navigation
+    router.push('/bookings' as any);
+  }, []);
+
+  const navigateToCourts = useCallback(() => {
+    router.push('/courts' as any);
+  }, []);
+
+  const navigateToProfile = useCallback(() => {
+    router.push('/profile' as any);
+  }, []);
 
   const quickActions = [
-    { icon: '➕', label: 'Đặt sân mới', color: Colors.primary, action: () => router.push('/courts') },
-    { icon: '📊', label: 'Thống kê', color: Colors.success, action: () => { } },
-    { icon: '💵', label: 'Thu chi', color: Colors.error, action: () => { } },
-    { icon: '⚙️', label: 'Cài đặt', color: Colors.textSecondary, action: () => { } },
+    {
+      icon: '🏸',
+      label: 'Đặt sân',
+      color: Colors.primary,
+      action: navigateToCourts,
+    },
+    {
+      icon: '📋',
+      label: 'Lịch sử',
+      color: Colors.success,
+      action: navigateToBookings,
+    },
+    {
+      icon: '👤',
+      label: 'Hồ sơ',
+      color: Colors.secondary,
+      action: navigateToProfile,
+    },
+    {
+      icon: '💬',
+      label: 'Hỗ trợ',
+      color: Colors.error,
+      action: () => Alert.alert('Hỗ trợ', 'Liên hệ: 0123456789'),
+    },
   ];
+
+  const statsData = [
+    { icon: '📊', label: 'Tổng đặt sân', value: stats.totalBookings.toString(), color: Colors.primary },
+    { icon: '✓', label: 'Đã xác nhận', value: stats.confirmedBookings.toString(), color: Colors.success },
+    { icon: '⏳', label: 'Chờ xác nhận', value: stats.pendingBookings.toString(), color: Colors.warning },
+    { icon: '✓', label: 'Hoàn thành', value: stats.completedBookings.toString(), color: Colors.secondary },
+  ];
+
+  const handleBookingPress = useCallback((bookingId: number) => {
+    router.push({
+      pathname: '/bookings/[id]',
+      params: { id: bookingId }
+    } as any);
+  }, []);
+
+  if (loading && !refreshing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Đang tải...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -44,28 +160,24 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Xin chào 👋</Text>
-          <Text style={styles.userName}>Quản lý sân</Text>
+          <Text style={styles.userName}>{user?.fullName || 'Người dùng'}</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push('/profile')}>
-          <Avatar name="Admin" size={50} />
+        <TouchableOpacity onPress={navigateToProfile}>
+          <Avatar name={user?.fullName || 'User'} size={50} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary]}
+          />
+        }
       >
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          {stats.map((stat, index) => (
-            <Card key={index} variant="elevated" style={styles.statCard}>
-              <Text style={styles.statIcon}>{stat.icon}</Text>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </Card>
-          ))}
-        </View>
-
         {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Thao tác nhanh</Text>
@@ -86,38 +198,75 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* Stats Grid */}
+        <View style={styles.statsContainer}>
+          <Text style={styles.sectionTitle}>Thống kê</Text>
+          <View style={styles.statsGrid}>
+            {statsData.map((stat, index) => (
+              <Card key={index} variant="elevated" style={styles.statCard}>
+                <Text style={styles.statIcon}>{stat.icon}</Text>
+                <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </Card>
+            ))}
+          </View>
+        </View>
+
         {/* Recent Bookings */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Đặt sân gần đây</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={navigateToBookings}>
               <Text style={styles.seeAll}>Xem tất cả →</Text>
             </TouchableOpacity>
           </View>
 
-          {recentBookings.map((booking) => (
-            <Card key={booking.id} variant="elevated" style={styles.bookingCard}>
-              <View style={styles.bookingHeader}>
-                <View>
-                  <Text style={styles.courtName}>{booking.court}</Text>
-                  <Text style={styles.bookingTime}>⏰ {booking.time}</Text>
-                </View>
-                <View style={[
-                  styles.statusBadge,
-                  { backgroundColor: booking.status === 'confirmed' ? Colors.success + '20' : Colors.error + '20' }
-                ]}>
-                  <Text style={[
-                    styles.statusText,
-                    { color: booking.status === 'confirmed' ? Colors.success : Colors.error }
-                  ]}>
-                    {booking.status === 'confirmed' ? 'Đã xác nhận' : 'Chờ xác nhận'}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.customerName}>👤 {booking.customer}</Text>
+          {bookings.length > 0 ? (
+            bookings.map((booking) => (
+              <BookingCard
+                key={booking.id}
+                {...booking}
+                onPress={() => handleBookingPress(booking.id)}
+              />
+            ))
+          ) : (
+            <Card variant="elevated" style={styles.emptyCard}>
+              <Text style={styles.emptyIcon}>🏸</Text>
+              <Text style={styles.emptyText}>Chưa có lịch đặt sân nào</Text>
+              <TouchableOpacity
+                style={styles.emptyButton}
+                onPress={navigateToCourts}
+              >
+                <Text style={styles.emptyButtonText}>Đặt sân ngay</Text>
+              </TouchableOpacity>
             </Card>
-          ))}
+          )}
         </View>
+
+        {/* News/Tips Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Tin tức & Mẹo hay</Text>
+
+          <Card variant="elevated" style={styles.newsCard}>
+            <Text style={styles.newsIcon}>📰</Text>
+            <Text style={styles.newsTitle}>Khuyến mãi đặc biệt</Text>
+            <Text style={styles.newsContent}>
+              Giảm 20% cho lần đặt sân đầu tiên trong tháng này!
+            </Text>
+            <Text style={styles.newsDate}>Hôm nay</Text>
+          </Card>
+
+          <Card variant="elevated" style={styles.newsCard}>
+            <Text style={styles.newsIcon}>💡</Text>
+            <Text style={styles.newsTitle}>Mẹo chơi cầu lông</Text>
+            <Text style={styles.newsContent}>
+              5 kỹ thuật cơ bản giúp bạn cải thiện kỹ năng chơi cầu lông.
+            </Text>
+            <Text style={styles.newsDate}>2 ngày trước</Text>
+          </Card>
+        </View>
+
+        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   );
@@ -127,6 +276,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: Colors.textSecondary,
   },
   header: {
     flexDirection: 'row',
@@ -152,35 +312,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
-    gap: 12,
-  },
-  statCard: {
-    width: (width - 56) / 2,
-    alignItems: 'center',
-    padding: 16,
-  },
-  statIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
   section: {
     paddingHorizontal: 24,
-    marginBottom: 24,
+    marginTop: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -192,6 +326,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: Colors.text,
+    marginBottom: 16,
   },
   seeAll: {
     fontSize: 14,
@@ -200,8 +335,7 @@ const styles = StyleSheet.create({
   },
   quickActionsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+    justifyContent: 'space-between',
   },
   quickActionCard: {
     width: (width - 68) / 4,
@@ -224,37 +358,81 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
   },
-  bookingCard: {
-    marginBottom: 12,
+  statsContainer: {
+    paddingHorizontal: 24,
+    marginTop: 24,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  statCard: {
+    width: (width - 60) / 2,
+    alignItems: 'center',
     padding: 16,
   },
-  bookingHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  statIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  emptyCard: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  emptyButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  emptyButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  newsCard: {
+    padding: 16,
     marginBottom: 12,
   },
-  courtName: {
+  newsIcon: {
+    fontSize: 32,
+    marginBottom: 12,
+  },
+  newsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: Colors.text,
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  bookingTime: {
+  newsContent: {
     fontSize: 14,
     color: Colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 12,
   },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  statusText: {
+  newsDate: {
     fontSize: 12,
-    fontWeight: '600',
-  },
-  customerName: {
-    fontSize: 14,
     color: Colors.textSecondary,
   },
 });

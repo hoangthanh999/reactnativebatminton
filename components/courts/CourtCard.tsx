@@ -1,125 +1,167 @@
-import Card from '@/components/ui/Card';
+// components/courts/CourtCard.tsx
 import { Colors } from '@/constants/Colors';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface CourtCardProps {
     id: number;
     name: string;
-    status: 'available' | 'occupied' | 'maintenance';
-    price: string;
-    currentBooking?: string;
+    address: string;
+    pricePerHour: number;
+    numberOfCourts: number;
+    status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+    imageUrl?: string;
     onPress: () => void;
 }
 
 export default function CourtCard({
     name,
+    address,
+    pricePerHour,
+    numberOfCourts,
     status,
-    price,
-    currentBooking,
+    imageUrl,
     onPress,
 }: CourtCardProps) {
-    const statusConfig = {
-        available: { label: 'Trống', color: Colors.success, icon: '✓' },
-        occupied: { label: 'Đang sử dụng', color: Colors.error, icon: '⏱' },
-        maintenance: { label: 'Bảo trì', color: Colors.textSecondary, icon: '🔧' },
+    const getStatusInfo = () => {
+        switch (status) {
+            case 'ACTIVE':
+                return { label: 'Hoạt động', color: Colors.success, icon: '✓' };
+            case 'INACTIVE':
+                return { label: 'Ngừng hoạt động', color: Colors.textSecondary, icon: '○' };
+            case 'MAINTENANCE':
+                return { label: 'Bảo trì', color: Colors.warning, icon: '⚠' };
+        }
     };
 
-    const config = statusConfig[status];
+    const statusInfo = getStatusInfo();
 
     return (
-        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-            <Card variant="elevated" style={styles.card}>
-                <View style={styles.header}>
-                    <Text style={styles.name}>{name}</Text>
-                    <View style={[styles.statusBadge, { backgroundColor: config.color + '20' }]}>
-                        <Text style={styles.statusIcon}>{config.icon}</Text>
-                        <Text style={[styles.statusText, { color: config.color }]}>
-                            {config.label}
+        <TouchableOpacity
+            style={styles.card}
+            onPress={onPress}
+            activeOpacity={0.7}
+        >
+            {/* Image */}
+            <View style={styles.imageContainer}>
+                {imageUrl ? (
+                    <Image source={{ uri: imageUrl }} style={styles.image} />
+                ) : (
+                    <View style={[styles.image, styles.placeholderImage]}>
+                        <Text style={styles.placeholderIcon}>🏸</Text>
+                    </View>
+                )}
+                <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
+                    <Text style={styles.statusText}>{statusInfo.label}</Text>
+                </View>
+            </View>
+
+            {/* Info */}
+            <View style={styles.info}>
+                <Text style={styles.name} numberOfLines={1}>{name}</Text>
+                <Text style={styles.address} numberOfLines={1}>📍 {address}</Text>
+
+                <View style={styles.footer}>
+                    <View style={styles.priceContainer}>
+                        <Text style={styles.price}>
+                            {pricePerHour.toLocaleString('vi-VN')}đ
                         </Text>
+                        <Text style={styles.priceUnit}>/giờ</Text>
+                    </View>
+                    <View style={styles.courtsInfo}>
+                        <Text style={styles.courtsText}>{numberOfCourts} sân</Text>
                     </View>
                 </View>
-
-                <View style={styles.info}>
-                    <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>💰 Giá thuê:</Text>
-                        <Text style={styles.infoValue}>{price}/giờ</Text>
-                    </View>
-
-                    {currentBooking && (
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>⏰ Đang đặt:</Text>
-                            <Text style={styles.infoValue}>{currentBooking}</Text>
-                        </View>
-                    )}
-                </View>
-
-                <TouchableOpacity style={styles.button} onPress={onPress}>
-                    <Text style={styles.buttonText}>
-                        {status === 'available' ? 'Đặt sân' : 'Xem chi tiết'}
-                    </Text>
-                </TouchableOpacity>
-            </Card>
+            </View>
         </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
     card: {
+        backgroundColor: Colors.surface,
+        borderRadius: 16,
         marginBottom: 16,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+    imageContainer: {
+        position: 'relative',
+        width: '100%',
+        height: 180,
+    },
+    image: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+    placeholderImage: {
+        backgroundColor: Colors.border,
+        justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 12,
     },
-    name: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: Colors.text,
+    placeholderIcon: {
+        fontSize: 48,
     },
     statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        position: 'absolute',
+        top: 12,
+        right: 12,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 12,
-        gap: 4,
-    },
-    statusIcon: {
-        fontSize: 12,
     },
     statusText: {
+        color: Colors.white,
         fontSize: 12,
         fontWeight: '600',
     },
     info: {
-        marginBottom: 12,
+        padding: 16,
     },
-    infoRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 8,
+    name: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: Colors.text,
+        marginBottom: 6,
     },
-    infoLabel: {
+    address: {
         fontSize: 14,
         color: Colors.textSecondary,
+        marginBottom: 12,
     },
-    infoValue: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: Colors.text,
-    },
-    button: {
-        backgroundColor: Colors.primary,
-        paddingVertical: 12,
-        borderRadius: 12,
+    footer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
     },
-    buttonText: {
-        color: Colors.white,
+    priceContainer: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+    },
+    price: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.primary,
+    },
+    priceUnit: {
         fontSize: 14,
+        color: Colors.textSecondary,
+        marginLeft: 4,
+    },
+    courtsInfo: {
+        backgroundColor: Colors.primaryLight,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+    },
+    courtsText: {
+        fontSize: 12,
         fontWeight: '600',
+        color: Colors.primary,
     },
 });

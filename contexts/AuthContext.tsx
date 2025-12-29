@@ -1,3 +1,4 @@
+// contexts/AuthContext.tsx
 import { getCurrentUser, getToken } from '@/services/authService';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
@@ -26,18 +27,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const checkAuth = async () => {
         try {
+            console.log('🔄 AuthContext: Checking auth...');
             const token = await getToken();
+            console.log('🔑 AuthContext: Token exists:', !!token);
+
             if (token) {
                 const userData = await getCurrentUser();
+                console.log('👤 AuthContext: User data:', userData);
                 setUser(userData);
             } else {
+                console.log('❌ AuthContext: No token found');
                 setUser(null);
             }
         } catch (error) {
-            console.error('Auth check error:', error);
+            console.error('❌ AuthContext: Check error:', error);
             setUser(null);
         } finally {
             setIsLoading(false);
+            console.log('✅ AuthContext: Check complete');
         }
     };
 
@@ -46,14 +53,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const login = (userData: User) => {
+        console.log('✅ AuthContext: Login called with:', userData);
         setUser(userData);
     };
 
     const logout = () => {
+        console.log('🚪 AuthContext: Logout called');
         setUser(null);
     };
 
     const refreshAuth = async () => {
+        console.log('🔄 AuthContext: Refresh auth called');
         await checkAuth();
     };
 

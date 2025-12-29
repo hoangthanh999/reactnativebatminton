@@ -1,54 +1,54 @@
-import { Colors } from '@/constants/Colors';
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+// app/_layout.tsx
+import { AuthProvider } from '@/contexts/AuthContext';
+import { isAuthenticated } from '@/services/authService';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
 
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
   const segments = useSegments();
+  const router = useRouter();
+  const [isReady, setIsReady] = useState(false);
 
-  useEffect(() => {
-    if (!isLoading) {
+  const checkAuth = useCallback(async () => {
+    try {
+      console.log('🔍 Checking auth... Segments:', segments);
+      const authenticated = await isAuthenticated();
+      console.log('🔐 Authenticated:', authenticated);
+
       const inAuthGroup = segments[0] === '(auth)';
+      console.log('📍 In auth group:', inAuthGroup);
 
-      console.log('📍 Navigation check:', {
-        isAuthenticated,
-        inAuthGroup,
-        segments,
-      });
-
-      if (!isAuthenticated && !inAuthGroup) {
-        // Chưa login → redirect về login
+      // Chỉ redirect sau khi đã check xong
+      if (!authenticated && !inAuthGroup) {
+        console.log('➡️ Redirecting to login...');
         router.replace('/(auth)/login');
-      } else if (isAuthenticated && inAuthGroup) {
-        // Đã login → redirect về tabs
+      } else if (authenticated && inAuthGroup) {
+        console.log('➡️ Redirecting to tabs...');
         router.replace('/(tabs)');
       }
-    }
-  }, [isAuthenticated, segments, isLoading]);
 
-  if (isLoading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: Colors.background,
-        }}
-      >
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+      setIsReady(true);
+    } catch (error) {
+      console.error('❌ Auth check error:', error);
+      setIsReady(true);
+    }
+  }, [segments, router]);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Không render gì cho đến khi auth check xong
+  if (!isReady) {
+    return null;
   }
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="+not-found" />
+      <Stack.Screen name="courts/[id]" />
+      <Stack.Screen name="bookings/[id]" />
     </Stack>
   );
 }

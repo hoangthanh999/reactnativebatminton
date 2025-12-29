@@ -61,14 +61,23 @@ export default function LoginScreen() {
         setLoading(true);
 
         try {
+            console.log('🔵 Starting login...');
             const response = await login(emailOrPhone.trim(), password);
             console.log('✅ LOGIN SUCCESS:', response);
 
             // Cập nhật auth context
+            console.log('🔄 Updating auth context...');
             setAuthUser(response.data.user);
 
-            // Router sẽ tự động redirect nhờ useEffect trong _layout.tsx
-            console.log('🚀 Auth updated, waiting for redirect...');
+            // ⚠️ QUAN TRỌNG: Đợi một chút để AuthContext cập nhật
+            console.log('⏳ Waiting for auth context to update...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Force refresh auth
+            console.log('🔄 Refreshing auth...');
+            // Không cần gọi refreshAuth nữa vì đã setAuthUser
+
+            console.log('🚀 Login complete, navigation should happen automatically');
         } catch (error: any) {
             console.error('❌ LOGIN ERROR:', error);
 

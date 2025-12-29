@@ -1,8 +1,14 @@
+// app/(tabs)/courts.tsx
 import CourtCard from '@/components/courts/CourtCard';
 import { Colors } from '@/constants/Colors';
+import { Court, courtService } from '@/services/courtService';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
+    RefreshControl,
     ScrollView,
     StyleSheet,
     Text,
@@ -11,33 +17,110 @@ import {
     View,
 } from 'react-native';
 
-type FilterType = 'all' | 'available' | 'occupied' | 'maintenance';
+type FilterType = 'all' | 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
 
 export default function CourtsScreen() {
+    const router = useRouter();
     const [filter, setFilter] = useState<FilterType>('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [courts, setCourts] = useState<Court[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [page, setPage] = useState(0);
 
-    const courts = [
-        { id: 1, name: 'Sân 1', status: 'available' as const, price: '100.000đ', currentBooking: undefined },
-        { id: 2, name: 'Sân 2', status: 'occupied' as const, price: '100.000đ', currentBooking: '08:00 - 10:00' },
-        { id: 3, name: 'Sân 3', status: 'available' as const, price: '120.000đ', currentBooking: undefined },
-        { id: 4, name: 'Sân 4', status: 'occupied' as const, price: '100.000đ', currentBooking: '10:00 - 12:00' },
-        { id: 5, name: 'Sân 5', status: 'maintenance' as const, price: '100.000đ', currentBooking: undefined },
-        { id: 6, name: 'Sân 6', status: 'available' as const, price: '120.000đ', currentBooking: undefined },
-    ];
+    // Load courts
+    const loadCourts = useCallback(async (pageNum = 0, isRefresh = false) => {
+        try {
+            if (isRefresh) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
+            }
+
+            const response = await courtService.getAllCourts(pageNum, 10);
+
+            if (response.success) {
+                const newCourts = response.data.content;
+
+                if (isRefresh || pageNum === 0) {
+                    setCourts(newCourts);
+                } else {
+                    setCourts(prev => [...prev, ...newCourts]);
+                }
+
+                setPage(pageNum);
+            }
+        } catch (error: any) {
+            console.error('Load courts error:', error);
+            Alert.alert('Lỗi', error.response?.data?.message || 'Không thể tải danh sách sân');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, []);
+
+    // Search courts
+    const searchCourts = useCallback(async () => {
+        try {
+            setLoading(true);
+            const response = await courtService.searchCourts({
+                name: searchQuery || undefined,
+                page: 0,
+                size: 20,
+            });
+
+            if (response.success) {
+                setCourts(response.data.content);
+            }
+        } catch (error: any) {
+            console.error('Search courts error:', error);
+            Alert.alert('Lỗi', 'Không thể tìm kiếm sân');
+        } finally {
+            setLoading(false);
+        }
+    }, [searchQuery]);
+
+    useEffect(() => {
+        loadCourts(0);
+    }, [loadCourts]);
+
+    // Debounce search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchQuery) {
+                searchCourts();
+            } else {
+                loadCourts(0);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery, searchCourts, loadCourts]);
+
+    const onRefresh = useCallback(() => {
+        loadCourts(0, true);
+    }, [loadCourts]);
+
+    // Filter courts
+    const filteredCourts = courts.filter(court => {
+        if (filter === 'all') return true;
+        return court.status === filter;
+    });
 
     const filters = [
         { key: 'all' as FilterType, label: 'Tất cả', count: courts.length },
-        { key: 'available' as FilterType, label: 'Trống', count: courts.filter(c => c.status === 'available').length },
-        { key: 'occupied' as FilterType, label: 'Đang dùng', count: courts.filter(c => c.status === 'occupied').length },
-        { key: 'maintenance' as FilterType, label: 'Bảo trì', count: courts.filter(c => c.status === 'maintenance').length },
+        { key: 'ACTIVE' as FilterType, label: 'Hoạt động', count: courts.filter(c => c.status === 'ACTIVE').length },
+        { key: 'INACTIVE' as FilterType, label: 'Ngừng hoạt động', count: courts.filter(c => c.status === 'INACTIVE').length },
+        { key: 'MAINTENANCE' as FilterType, label: 'Bảo trì', count: courts.filter(c => c.status === 'MAINTENANCE').length },
     ];
 
-    const filteredCourts = courts.filter(court => {
-        const matchFilter = filter === 'all' || court.status === filter;
-        const matchSearch = court.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchFilter && matchSearch;
-    });
+    const handleCourtPress = (courtId: number) => {
+        // Sử dụng href thay vì template literal
+        router.push({
+            pathname: '/courts/[id]',
+            params: { id: courtId }
+        } as any);
+    };
 
     return (
         <View style={styles.container}>
@@ -45,8 +128,10 @@ export default function CourtsScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Quản lý sân</Text>
-                <Text style={styles.headerSubtitle}>Tổng số: {courts.length} sân</Text>
+                <Text style={styles.headerTitle}>Danh sách sân</Text>
+                <Text style={styles.headerSubtitle}>
+                    {filteredCourts.length} sân có sẵn
+                </Text>
             </View>
 
             {/* Search */}
@@ -60,6 +145,11 @@ export default function CourtsScreen() {
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Text style={styles.clearIcon}>✕</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
 
@@ -92,33 +182,42 @@ export default function CourtsScreen() {
             </ScrollView>
 
             {/* Courts List */}
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.courtsContainer}
-                showsVerticalScrollIndicator={false}
-            >
-                {filteredCourts.map((court) => (
-                    <CourtCard
-                        key={court.id}
-                        {...court}
-                        onPress={() => console.log('Court pressed:', court.id)}
-                    />
-                ))}
+            {loading && page === 0 ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Colors.primary} />
+                    <Text style={styles.loadingText}>Đang tải...</Text>
+                </View>
+            ) : (
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.courtsContainer}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            colors={[Colors.primary]}
+                        />
+                    }
+                >
+                    {filteredCourts.map((court) => (
+                        <CourtCard
+                            key={court.id}
+                            {...court}
+                            onPress={() => handleCourtPress(court.id)}
+                        />
+                    ))}
 
-                {filteredCourts.length === 0 && (
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyIcon}>🏸</Text>
-                        <Text style={styles.emptyText}>Không tìm thấy sân nào</Text>
-                    </View>
-                )}
-            </ScrollView>
-
-            {/* Add Court Button */}
-            <View style={styles.fabContainer}>
-                <TouchableOpacity style={styles.fab} activeOpacity={0.8}>
-                    <Text style={styles.fabIcon}>+</Text>
-                </TouchableOpacity>
-            </View>
+                    {filteredCourts.length === 0 && !loading && (
+                        <View style={styles.emptyState}>
+                            <Text style={styles.emptyIcon}>🏸</Text>
+                            <Text style={styles.emptyText}>
+                                {searchQuery ? 'Không tìm thấy sân phù hợp' : 'Chưa có sân nào'}
+                            </Text>
+                        </View>
+                    )}
+                </ScrollView>
+            )}
         </View>
     );
 }
@@ -167,8 +266,14 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: Colors.text,
     },
+    clearIcon: {
+        fontSize: 18,
+        color: Colors.textSecondary,
+        padding: 4,
+    },
     filtersContainer: {
         maxHeight: 50,
+        marginBottom: 16,
     },
     filtersContent: {
         paddingHorizontal: 24,
@@ -199,6 +304,17 @@ const styles = StyleSheet.create({
     },
     courtsContainer: {
         padding: 24,
+        paddingBottom: 100,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 12,
+        fontSize: 16,
+        color: Colors.textSecondary,
     },
     emptyState: {
         alignItems: 'center',
@@ -211,28 +327,6 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 16,
         color: Colors.textSecondary,
-    },
-    fabContainer: {
-        position: 'absolute',
-        bottom: 80,
-        right: 24,
-    },
-    fab: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: Colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.4,
-        shadowRadius: 8,
-        elevation: 8,
-    },
-    fabIcon: {
-        fontSize: 32,
-        color: Colors.white,
-        fontWeight: '300',
+        textAlign: 'center',
     },
 });

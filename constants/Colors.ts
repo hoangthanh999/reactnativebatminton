@@ -5,6 +5,8 @@ export const Colors = {
     background: '#FFFFFF',
     surface: '#F8F9FA',
     text: '#2D3436',
+    primaryLight: '#E3F2FD',
+    warning: '#FF9800',
     textSecondary: '#636E72',
     border: '#DFE6E9',
     error: '#FF6B6B',

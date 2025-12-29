@@ -1,7 +1,7 @@
+// app/(tabs)/_layout.tsx
 import { Colors } from '@/constants/Colors';
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
-
 
 export default function TabLayout() {
   return (
@@ -39,6 +39,15 @@ export default function TabLayout() {
           title: 'Sân',
           tabBarIcon: ({ color, size }) => (
             <Text style={{ fontSize: size }}>🏸</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="bookings"
+        options={{
+          title: 'Lịch đặt',
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ fontSize: size }}>📋</Text>
           ),
         }}
       />
