@@ -1,72 +1,159 @@
+// app/(tabs)/profile.tsx - Thêm menu Admin
+
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
-import { logout as logoutService } from '@/services/authService';
-import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { logout } from '@/services/authService';
+import { useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React from 'react';
+import {
+    Alert,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 export default function ProfileScreen() {
-    const { user, logout: clearAuthUser } = useAuth();
+    const { user, logout: logoutContext } = useAuth();
+    const router = useRouter();
 
-    const handleLogout = () => {
+    console.log('USER:', user);
+    console.log('ROLE:', user?.role);
+
+    const handleLogout = async () => {
         if (Platform.OS === 'web') {
-            if (confirm('Bạn có chắc muốn đăng xuất?')) {
-                performLogout();
-            }
+            const confirmed = window.confirm('Bạn có chắc muốn đăng xuất?');
+            if (!confirmed) return;
         } else {
-            Alert.alert('Xác nhận', 'Bạn có chắc muốn đăng xuất?', [
-                { text: 'Hủy', style: 'cancel' },
-                { text: 'Đăng xuất', onPress: performLogout, style: 'destructive' },
-            ]);
+            Alert.alert(
+                'Đăng xuất',
+                'Bạn có chắc muốn đăng xuất?',
+                [
+                    { text: 'Hủy', style: 'cancel' },
+                    {
+                        text: 'Đăng xuất',
+                        style: 'destructive',
+                        onPress: async () => {
+                            await performLogout();
+                        },
+                    },
+                ],
+            );
+            return;
         }
+
+        await performLogout();
     };
 
     const performLogout = async () => {
-        await logoutService();
-        clearAuthUser();
-        // Router sẽ tự động redirect nhờ useEffect trong _layout.tsx
+        try {
+            await logout();
+            logoutContext();
+            router.replace('/(auth)/login');
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
     };
 
     return (
-        <ScrollView style={styles.container}>
+        <View style={styles.container}>
+            <StatusBar style="light" />
+
+            {/* Header */}
             <View style={styles.header}>
-                <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
-                        {user?.fullName?.charAt(0).toUpperCase() || '?'}
+                <View style={styles.avatarContainer}>
+                    <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>
+                            {user?.fullName?.charAt(0).toUpperCase()}
+                        </Text>
+                    </View>
+                </View>
+                <Text style={styles.name}>{user?.fullName}</Text>
+                <Text style={styles.email}>{user?.email}</Text>
+                <View style={styles.roleBadge}>
+                    <Text style={styles.roleText}>
+                        {user?.role === 'ADMIN' ? '👑 Admin' :
+                            user?.role === 'OWNER' ? '🏢 Chủ sân' : '👤 Người dùng'}
                     </Text>
                 </View>
-                <Text style={styles.name}>{user?.fullName || 'User'}</Text>
-                <Text style={styles.email}>{user?.email}</Text>
-                <Text style={styles.phone}>{user?.phone}</Text>
             </View>
 
-            <View style={styles.section}>
-                <TouchableOpacity style={styles.menuItem}>
-                    <Text style={styles.menuIcon}>👤</Text>
-                    <Text style={styles.menuText}>Thông tin cá nhân</Text>
-                    <Text style={styles.menuArrow}>›</Text>
-                </TouchableOpacity>
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                {/* Admin Menu - Chỉ hiện cho ADMIN và OWNER */}
+                {(user?.role === 'ADMIN' || user?.role === 'OWNER') && (
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>Quản trị</Text>
+                        <View style={styles.menuCard}>
+                            <TouchableOpacity
+                                style={styles.menuItem}
+                                onPress={() => router.push('/admin' as any)}
+                            >
+                                <Text style={styles.menuIcon}>⚙️</Text>
+                                <Text style={styles.menuText}>Trang quản trị</Text>
+                                <Text style={styles.menuArrow}>›</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                )}
 
-                <TouchableOpacity style={styles.menuItem}>
-                    <Text style={styles.menuIcon}>🔔</Text>
-                    <Text style={styles.menuText}>Thông báo</Text>
-                    <Text style={styles.menuArrow}>›</Text>
-                </TouchableOpacity>
+                {/* Account Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Tài khoản</Text>
+                    <View style={styles.menuCard}>
+                        <TouchableOpacity style={styles.menuItem}>
+                            <Text style={styles.menuIcon}>👤</Text>
+                            <Text style={styles.menuText}>Thông tin cá nhân</Text>
+                            <Text style={styles.menuArrow}>›</Text>
+                        </TouchableOpacity>
+                        <View style={styles.divider} />
+                        <TouchableOpacity style={styles.menuItem}>
+                            <Text style={styles.menuIcon}>🔒</Text>
+                            <Text style={styles.menuText}>Đổi mật khẩu</Text>
+                            <Text style={styles.menuArrow}>›</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
 
-                <TouchableOpacity style={styles.menuItem}>
-                    <Text style={styles.menuIcon}>⚙️</Text>
-                    <Text style={styles.menuText}>Cài đặt</Text>
-                    <Text style={styles.menuArrow}>›</Text>
-                </TouchableOpacity>
+                {/* Settings Section */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Cài đặt</Text>
+                    <View style={styles.menuCard}>
+                        <TouchableOpacity style={styles.menuItem}>
+                            <Text style={styles.menuIcon}>🔔</Text>
+                            <Text style={styles.menuText}>Thông báo</Text>
+                            <Text style={styles.menuArrow}>›</Text>
+                        </TouchableOpacity>
+                        <View style={styles.divider} />
+                        <TouchableOpacity style={styles.menuItem}>
+                            <Text style={styles.menuIcon}>🌐</Text>
+                            <Text style={styles.menuText}>Ngôn ngữ</Text>
+                            <Text style={styles.menuArrow}>›</Text>
+                        </TouchableOpacity>
+                        <View style={styles.divider} />
+                        <TouchableOpacity style={styles.menuItem}>
+                            <Text style={styles.menuIcon}>❓</Text>
+                            <Text style={styles.menuText}>Trợ giúp</Text>
+                            <Text style={styles.menuArrow}>›</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
 
-                <TouchableOpacity
-                    style={[styles.menuItem, styles.logoutButton]}
-                    onPress={handleLogout}
-                >
-                    <Text style={styles.menuIcon}>🚪</Text>
-                    <Text style={[styles.menuText, styles.logoutText]}>Đăng xuất</Text>
-                    <Text style={styles.menuArrow}>›</Text>
-                </TouchableOpacity>
-            </View>
-        </ScrollView>
+                {/* Logout */}
+                <View style={styles.section}>
+                    <TouchableOpacity
+                        style={styles.logoutButton}
+                        onPress={handleLogout}
+                    >
+                        <Text style={styles.logoutText}>Đăng xuất</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <View style={{ height: 100 }} />
+            </ScrollView>
+        </View>
     );
 }
 
@@ -76,24 +163,29 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background,
     },
     header: {
-        alignItems: 'center',
         paddingTop: 60,
         paddingBottom: 30,
+        paddingHorizontal: 24,
         backgroundColor: Colors.primary,
+        alignItems: 'center',
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
     },
+    avatarContainer: {
+        marginBottom: 16,
+    },
     avatar: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
         backgroundColor: Colors.white,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
+        borderWidth: 3,
+        borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     avatarText: {
-        fontSize: 40,
+        fontSize: 32,
         fontWeight: 'bold',
         color: Colors.primary,
     },
@@ -104,24 +196,49 @@ const styles = StyleSheet.create({
         marginBottom: 4,
     },
     email: {
-        fontSize: 16,
+        fontSize: 14,
         color: 'rgba(255, 255, 255, 0.9)',
-        marginBottom: 4,
+        marginBottom: 12,
     },
-    phone: {
-        fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.9)',
+    roleBadge: {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    roleText: {
+        fontSize: 12,
+        color: Colors.white,
+        fontWeight: '600',
+    },
+    content: {
+        flex: 1,
     },
     section: {
-        padding: 24,
+        paddingHorizontal: 24,
+        marginTop: 24,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.text,
+        marginBottom: 12,
+    },
+    menuCard: {
+        backgroundColor: Colors.surface,
+        borderRadius: 16,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.white,
         padding: 16,
-        borderRadius: 12,
-        marginBottom: 12,
+        backgroundColor: Colors.surface,
     },
     menuIcon: {
         fontSize: 24,
@@ -131,17 +248,30 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 16,
         color: Colors.text,
-        fontWeight: '500',
     },
     menuArrow: {
         fontSize: 24,
         color: Colors.textSecondary,
     },
+    divider: {
+        height: 1,
+        backgroundColor: Colors.border,
+        marginHorizontal: 16,
+    },
     logoutButton: {
-        backgroundColor: Colors.error + '10',
-        marginTop: 12,
+        backgroundColor: Colors.error,
+        borderRadius: 16,
+        padding: 16,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
     },
     logoutText: {
-        color: Colors.error,
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.white,
     },
 });

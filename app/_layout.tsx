@@ -18,7 +18,6 @@ function RootLayoutNav() {
       const inAuthGroup = segments[0] === '(auth)';
       console.log('📍 In auth group:', inAuthGroup);
 
-      // Chỉ redirect sau khi đã check xong
       if (!authenticated && !inAuthGroup) {
         console.log('➡️ Redirecting to login...');
         router.replace('/(auth)/login');
@@ -38,7 +37,6 @@ function RootLayoutNav() {
     checkAuth();
   }, [checkAuth]);
 
-  // Không render gì cho đến khi auth check xong
   if (!isReady) {
     return null;
   }
@@ -47,6 +45,7 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="admin" /> {/* ✅ Không có dấu ngoặc */}
       <Stack.Screen name="courts/[id]" />
       <Stack.Screen name="bookings/[id]" />
     </Stack>
