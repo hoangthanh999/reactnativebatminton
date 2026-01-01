@@ -1,19 +1,28 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import { Platform } from "react-native";
 import { API_BASE_URL } from "../config/api";
 
+// ✅ Custom config cho Android Emulator
 const apiClient = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 15000, // Tăng timeout lên 15s
+    timeout: 35000,
     headers: {
         "Content-Type": "application/json",
+        "Accept": "application/json",
     },
+    // ✅ Thêm config này cho Android
+    ...(Platform.OS === 'android' && {
+        httpsAgent: undefined,
+        proxy: false,
+    }),
 });
 
 // Request Interceptor
 apiClient.interceptors.request.use(
     async (config) => {
         console.log("📤 Request:", config.method?.toUpperCase(), config.url);
+        console.log("🔗 Full URL:", config.baseURL + config.url);
 
         const token = await AsyncStorage.getItem("token");
 
