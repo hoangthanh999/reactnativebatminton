@@ -22,7 +22,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
     async (config) => {
         console.log("📤 Request:", config.method?.toUpperCase(), config.url);
-        console.log("🔗 Full URL:", config.baseURL + config.url);
+
 
         const token = await AsyncStorage.getItem("token");
 
