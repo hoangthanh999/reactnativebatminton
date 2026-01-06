@@ -281,8 +281,8 @@ export default function CourtDetailScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
                 {/* Image */}
                 <View style={styles.imageContainer}>
-                    {court.imageUrl ? (
-                        <Image source={{ uri: court.imageUrl }} style={styles.image} />
+                    {court.images && court.images.length > 0 ? (
+                        <Image source={{ uri: court.images[0] }} style={styles.image} />
                     ) : (
                         <View style={[styles.image, styles.placeholderImage]}>
                             <Text style={styles.placeholderIcon}>🏸</Text>

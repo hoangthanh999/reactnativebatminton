@@ -1,4 +1,3 @@
-// services/courtService.ts
 import apiClient from "./apiClient";
 
 export interface Court {
@@ -11,13 +10,19 @@ export interface Court {
     openTime: string;
     closeTime: string;
     status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
-    imageUrl?: string;
+    images?: string[];  // ✅ Backend trả về array
+    facilities?: string[];  // ✅ Backend trả về array
     owner: {
         id: number;
         fullName: string;
         email: string;
     };
 }
+
+// Helper function để lấy ảnh đầu tiên
+export const getCourtImage = (court: Court): string | undefined => {
+    return court.images && court.images.length > 0 ? court.images[0] : undefined;
+};
 
 export interface CourtSearchParams {
     name?: string;

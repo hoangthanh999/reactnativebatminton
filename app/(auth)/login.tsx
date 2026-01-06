@@ -17,11 +17,13 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 export default function LoginScreen() {
     const { login: setAuthUser } = useAuth();
+    const insets = useSafeAreaInsets();
     const [emailOrPhone, setEmailOrPhone] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -65,17 +67,11 @@ export default function LoginScreen() {
             const response = await login(emailOrPhone.trim(), password);
             console.log('✅ LOGIN SUCCESS:', response);
 
-            // Cập nhật auth context
             console.log('🔄 Updating auth context...');
             setAuthUser(response.data.user);
 
-            // ⚠️ QUAN TRỌNG: Đợi một chút để AuthContext cập nhật
             console.log('⏳ Waiting for auth context to update...');
             await new Promise(resolve => setTimeout(resolve, 500));
-
-            // Force refresh auth
-            console.log('🔄 Refreshing auth...');
-            // Không cần gọi refreshAuth nữa vì đã setAuthUser
 
             console.log('🚀 Login complete, navigation should happen automatically');
         } catch (error: any) {
@@ -97,7 +93,7 @@ export default function LoginScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             <StatusBar style="light" />
 
             {/* Header với gradient */}
@@ -121,9 +117,13 @@ export default function LoginScreen() {
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={styles.keyboardView}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
                 <ScrollView
-                    contentContainerStyle={styles.scrollContent}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        { paddingBottom: insets.bottom + 20 }
+                    ]}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
@@ -278,18 +278,17 @@ export default function LoginScreen() {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    // ... giữ nguyên styles
     container: {
         flex: 1,
         backgroundColor: Colors.background,
     },
     header: {
-        paddingTop: Platform.OS === 'web' ? 40 : 60,
+        paddingTop: 20,
         paddingBottom: 40,
         paddingHorizontal: 24,
         borderBottomLeftRadius: 30,
@@ -326,7 +325,6 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        paddingBottom: Platform.OS === 'web' ? 40 : 0,
     },
     formContainer: {
         flex: 1,

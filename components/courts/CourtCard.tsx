@@ -1,4 +1,3 @@
-// components/courts/CourtCard.tsx
 import { Colors } from '@/constants/Colors';
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -10,7 +9,7 @@ interface CourtCardProps {
     pricePerHour: number;
     numberOfCourts: number;
     status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
-    imageUrl?: string;
+    images?: string[];  // ✅ Đổi sang images array
     onPress: () => void;
 }
 
@@ -20,7 +19,7 @@ export default function CourtCard({
     pricePerHour,
     numberOfCourts,
     status,
-    imageUrl,
+    images,  // ✅ Nhận images thay vì imageUrl
     onPress,
 }: CourtCardProps) {
     const getStatusInfo = () => {
@@ -36,6 +35,9 @@ export default function CourtCard({
 
     const statusInfo = getStatusInfo();
 
+    // ✅ Lấy ảnh đầu tiên
+    const imageUrl = images && images.length > 0 ? images[0] : undefined;
+
     return (
         <TouchableOpacity
             style={styles.card}
@@ -45,12 +47,16 @@ export default function CourtCard({
             {/* Image */}
             <View style={styles.imageContainer}>
                 {imageUrl ? (
-                    <Image source={{ uri: imageUrl }} style={styles.image} />
+                    <Image
+                        source={{ uri: imageUrl }}
+                        style={styles.image}
+                    />
                 ) : (
                     <View style={[styles.image, styles.placeholderImage]}>
                         <Text style={styles.placeholderIcon}>🏸</Text>
                     </View>
                 )}
+
                 <View style={[styles.statusBadge, { backgroundColor: statusInfo.color }]}>
                     <Text style={styles.statusText}>{statusInfo.label}</Text>
                 </View>
