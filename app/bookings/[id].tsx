@@ -1,6 +1,8 @@
 // app/bookings/[id].tsx
+import PaymentModal from '@/components/payment/PaymentModal';
 import { Colors } from '@/constants/Colors';
 import { Booking, bookingService } from '@/services/bookingService';
+import { paymentService } from '@/services/paymentService';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -19,6 +21,10 @@ export default function BookingDetailScreen() {
     const [booking, setBooking] = useState<Booking | null>(null);
     const [loading, setLoading] = useState(true);
     const [cancelling, setCancelling] = useState(false);
+    const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+    const [checkingPayment, setCheckingPayment] = useState(false);
+
+    const DEPOSIT_PERCENTAGE = 30; // 30% cọc
 
     const loadBookingDetail = useCallback(async () => {
         try {
@@ -76,12 +82,48 @@ export default function BookingDetailScreen() {
         }
     };
 
+    const handlePayment = () => {
+        setPaymentModalVisible(true);
+    };
+
+    const handlePaymentSuccess = async () => {
+        // Reload booking để lấy trạng thái mới
+        await loadBookingDetail();
+        Alert.alert(
+            'Thông báo',
+            'Đang chờ xác nhận thanh toán từ MoMo. Vui lòng kiểm tra lại sau ít phút.',
+            [{ text: 'OK' }]
+        );
+    };
+
+    const checkPaymentStatus = async () => {
+        if (!booking) return;
+
+        try {
+            setCheckingPayment(true);
+            const payment = await paymentService.checkPaymentStatus(booking.id);
+
+            if (payment.status === 'COMPLETED' || payment.status === 'PARTIAL') {
+                Alert.alert('Thành công', 'Thanh toán đã được xác nhận!');
+                await loadBookingDetail();
+            } else if (payment.status === 'PENDING') {
+                Alert.alert('Chờ xác nhận', 'Thanh toán đang chờ xác nhận từ MoMo');
+            } else {
+                Alert.alert('Thất bại', 'Thanh toán chưa thành công');
+            }
+        } catch (error: any) {
+            Alert.alert('Lỗi', 'Không thể kiểm tra trạng thái thanh toán');
+        } finally {
+            setCheckingPayment(false);
+        }
+    };
+
     const getStatusInfo = (status: string) => {
         switch (status) {
             case 'CONFIRMED':
                 return { label: 'Đã xác nhận', color: Colors.success, icon: '✓' };
             case 'PENDING':
-                return { label: 'Chờ xác nhận', color: Colors.warning, icon: '⏳' };
+                return { label: 'Chờ thanh toán', color: Colors.warning, icon: '⏳' };
             case 'CANCELLED':
                 return { label: 'Đã hủy', color: Colors.error, icon: '✕' };
             case 'COMPLETED':
@@ -106,6 +148,7 @@ export default function BookingDetailScreen() {
 
     const statusInfo = getStatusInfo(booking.status);
     const canCancel = booking.status === 'PENDING' || booking.status === 'CONFIRMED';
+    const needsPayment = booking.status === 'PENDING';
 
     return (
         <View style={styles.container}>
@@ -125,6 +168,19 @@ export default function BookingDetailScreen() {
                         {statusInfo.icon} {statusInfo.label}
                     </Text>
                 </View>
+
+                {/* Payment Warning */}
+                {needsPayment && (
+                    <View style={styles.warningBox}>
+                        <Text style={styles.warningIcon}>⚠️</Text>
+                        <View style={styles.warningContent}>
+                            <Text style={styles.warningTitle}>Cần thanh toán</Text>
+                            <Text style={styles.warningText}>
+                                Vui lòng thanh toán để xác nhận đặt sân. Đặt sân sẽ tự động hủy sau 15 phút nếu không thanh toán.
+                            </Text>
+                        </View>
+                    </View>
+                )}
 
                 {/* Court Info */}
                 <View style={styles.section}>
@@ -176,33 +232,70 @@ export default function BookingDetailScreen() {
                     </View>
                 </View>
 
-                {/* User Info (if available) */}
-                {booking.user && (
+                {/* Payment Info */}
+                {booking.payment && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Thông tin người đặt</Text>
+                        <Text style={styles.sectionTitle}>Thông tin thanh toán</Text>
                         <View style={styles.infoCard}>
                             <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>👤 Họ tên:</Text>
-                                <Text style={styles.infoValue}>{booking.user.fullName}</Text>
+                                <Text style={styles.infoLabel}>Trạng thái:</Text>
+                                <Text style={[styles.infoValue, { color: Colors.primary }]}>
+                                    {booking.payment.status === 'COMPLETED' ? 'Đã thanh toán' :
+                                        booking.payment.status === 'PARTIAL' ? 'Đã cọc' :
+                                            booking.payment.status === 'PENDING' ? 'Chờ thanh toán' : 'Chưa thanh toán'}
+                                </Text>
                             </View>
                             <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>📧 Email:</Text>
-                                <Text style={styles.infoValue}>{booking.user.email}</Text>
+                                <Text style={styles.infoLabel}>Loại:</Text>
+                                <Text style={styles.infoValue}>
+                                    {booking.payment.paymentType === 'DEPOSIT' ? 'Thanh toán cọc' : 'Thanh toán toàn bộ'}
+                                </Text>
                             </View>
                             <View style={styles.infoRow}>
-                                <Text style={styles.infoLabel}>📱 SĐT:</Text>
-                                <Text style={styles.infoValue}>{booking.user.phone}</Text>
+                                <Text style={styles.infoLabel}>Đã thanh toán:</Text>
+                                <Text style={styles.infoValue}>
+                                    {booking.payment.depositAmount.toLocaleString('vi-VN')}đ
+                                </Text>
                             </View>
+                            {booking.payment.remainingAmount > 0 && (
+                                <View style={styles.infoRow}>
+                                    <Text style={styles.infoLabel}>Còn lại:</Text>
+                                    <Text style={[styles.infoValue, { color: Colors.warning }]}>
+                                        {booking.payment.remainingAmount.toLocaleString('vi-VN')}đ
+                                    </Text>
+                                </View>
+                            )}
                         </View>
                     </View>
                 )}
 
-                <View style={{ height: 100 }} />
+                <View style={{ height: 150 }} />
             </ScrollView>
 
             {/* Action Buttons */}
-            {canCancel && (
-                <View style={styles.footer}>
+            <View style={styles.footer}>
+                {needsPayment && (
+                    <>
+                        <TouchableOpacity
+                            style={styles.payButton}
+                            onPress={handlePayment}
+                        >
+                            <Text style={styles.payButtonText}>💳 Thanh toán ngay</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.checkButton}
+                            onPress={checkPaymentStatus}
+                            disabled={checkingPayment}
+                        >
+                            {checkingPayment ? (
+                                <ActivityIndicator color={Colors.primary} />
+                            ) : (
+                                <Text style={styles.checkButtonText}>Kiểm tra thanh toán</Text>
+                            )}
+                        </TouchableOpacity>
+                    </>
+                )}
+                {canCancel && (
                     <TouchableOpacity
                         style={[styles.cancelButton, cancelling && styles.cancelButtonDisabled]}
                         onPress={handleCancelBooking}
@@ -214,8 +307,18 @@ export default function BookingDetailScreen() {
                             <Text style={styles.cancelButtonText}>Hủy đặt sân</Text>
                         )}
                     </TouchableOpacity>
-                </View>
-            )}
+                )}
+            </View>
+
+            {/* Payment Modal */}
+            <PaymentModal
+                visible={paymentModalVisible}
+                bookingId={booking.id}
+                totalPrice={booking.totalPrice}
+                depositPercentage={DEPOSIT_PERCENTAGE}
+                onClose={() => setPaymentModalVisible(false)}
+                onSuccess={handlePaymentSuccess}
+            />
         </View>
     );
 }
@@ -275,6 +378,34 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
     },
+    warningBox: {
+        flexDirection: 'row',
+        backgroundColor: '#FFF3CD',
+        marginHorizontal: 24,
+        marginBottom: 24,
+        padding: 16,
+        borderRadius: 12,
+        borderLeftWidth: 4,
+        borderLeftColor: Colors.warning,
+    },
+    warningIcon: {
+        fontSize: 24,
+        marginRight: 12,
+    },
+    warningContent: {
+        flex: 1,
+    },
+    warningTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: Colors.text,
+        marginBottom: 4,
+    },
+    warningText: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+        lineHeight: 20,
+    },
     section: {
         paddingHorizontal: 24,
         marginBottom: 24,
@@ -317,6 +448,32 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.surface,
         borderTopWidth: 1,
         borderTopColor: Colors.border,
+    },
+    payButton: {
+        backgroundColor: '#A50064',
+        borderRadius: 12,
+        padding: 16,
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    payButtonText: {
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    checkButton: {
+        backgroundColor: Colors.surface,
+        borderRadius: 12,
+        padding: 16,
+        alignItems: 'center',
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: Colors.primary,
+    },
+    checkButtonText: {
+        color: Colors.primary,
+        fontSize: 16,
+        fontWeight: '600',
     },
     cancelButton: {
         backgroundColor: Colors.error,

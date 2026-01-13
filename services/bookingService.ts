@@ -29,8 +29,15 @@ export interface Booking {
         email: string;
         phone: string;
     };
+    payment?: {
+        id: number;
+        status: string;
+        paymentType: string;
+        amount: number;
+        depositAmount: number;
+        remainingAmount: number;
+    };
 }
-
 export const bookingService = {
     // ================= USER =================
     createBooking: async (data: BookingRequest) => {
