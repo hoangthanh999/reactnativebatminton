@@ -18,6 +18,17 @@ export interface Court {
         email: string;
     };
 }
+export interface CourtRequest {
+    name: string;
+    address: string;
+    description: string;
+    pricePerHour: number;
+    numberOfCourts: number;
+    openTime: string;
+    closeTime: string;
+    images?: string[]; // Cloudinary URLs
+    facilities?: string[];
+}
 
 // Helper function để lấy ảnh đầu tiên
 export const getCourtImage = (court: Court): string | undefined => {
@@ -79,4 +90,58 @@ export const courtService = {
             throw error;
         }
     },
+    // Tạo sân mới
+    createCourt: async (data: CourtRequest) => {
+        try {
+            console.log('📤 Creating court:', data);
+            const response = await apiClient.post('/courts', data);
+            console.log('✅ Court created:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('❌ Create court error:', error);
+            throw error;
+        }
+    },
+
+    // Cập nhật sân
+    updateCourt: async (id: number, data: Partial<CourtRequest>) => {
+        try {
+            console.log('📤 Updating court:', id, data);
+            const response = await apiClient.put(`/courts/${id}`, data);
+            console.log('✅ Court updated:', response.data);
+            return response.data;
+        } catch (error) {
+            console.error('❌ Update court error:', error);
+            throw error;
+        }
+    },
+
+    // Xóa sân
+    deleteCourt: async (id: number) => {
+        try {
+            console.log('🗑️ Deleting court:', id);
+            const response = await apiClient.delete(`/courts/${id}`);
+            console.log('✅ Court deleted');
+            return response.data;
+        } catch (error) {
+            console.error('❌ Delete court error:', error);
+            throw error;
+        }
+    },
+
+    // Cập nhật trạng thái
+    updateCourtStatus: async (id: number, status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE') => {
+        try {
+            console.log('📤 Updating court status:', id, status);
+            const response = await apiClient.patch(`/courts/${id}/status`, null, {
+                params: { status }
+            });
+            console.log('✅ Court status updated');
+            return response.data;
+        } catch (error) {
+            console.error('❌ Update court status error:', error);
+            throw error;
+        }
+    },
 };
+

@@ -23,8 +23,9 @@ apiClient.interceptors.request.use(
     async (config) => {
         console.log("📤 Request:", config.method?.toUpperCase(), config.url);
 
-
+        // ✅ THÊM LOG ĐẦY ĐỦ
         const token = await AsyncStorage.getItem("token");
+        console.log("🔑 Token from storage:", token ? `${token.substring(0, 30)}...` : "NULL");
 
         const isAuthRequest =
             config.url?.includes("/auth/login") ||
@@ -32,7 +33,13 @@ apiClient.interceptors.request.use(
 
         if (token && !isAuthRequest) {
             config.headers.Authorization = `Bearer ${token}`;
+            console.log("✅ Authorization header set");
+        } else {
+            console.warn("⚠️ NO TOKEN - Auth request:", isAuthRequest);
         }
+
+        // ✅ LOG HEADERS
+        console.log("📋 Request headers:", JSON.stringify(config.headers, null, 2));
 
         return config;
     },

@@ -2,9 +2,10 @@
 import BookingCard from '@/components/bookings/BookingCard';
 import { Colors } from '@/constants/Colors';
 import { Booking, bookingService } from '@/services/bookingService';
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -27,6 +28,8 @@ export default function BookingsScreen() {
 
     const loadBookings = useCallback(async (isRefresh = false) => {
         try {
+            console.log('🔄 Loading bookings...');
+
             if (isRefresh) {
                 setRefreshing(true);
             } else {
@@ -35,11 +38,14 @@ export default function BookingsScreen() {
 
             const response = await bookingService.getMyBookings(0, 50);
 
+            console.log('📥 Bookings response:', response);
+
             if (response.success) {
                 setBookings(response.data.content);
+                console.log('✅ Loaded', response.data.content.length, 'bookings');
             }
         } catch (error: any) {
-            console.error('Load bookings error:', error);
+            console.error('❌ Load bookings error:', error);
             Alert.alert('Lỗi', 'Không thể tải danh sách đặt sân');
         } finally {
             setLoading(false);
@@ -47,9 +53,13 @@ export default function BookingsScreen() {
         }
     }, []);
 
-    useEffect(() => {
-        loadBookings();
-    }, [loadBookings]);
+    // ✅ SỬA: Dùng useFocusEffect thay vì useEffect
+    useFocusEffect(
+        useCallback(() => {
+            console.log('👁️ Bookings screen focused, loading data...');
+            loadBookings();
+        }, [loadBookings])
+    );
 
     const onRefresh = useCallback(() => {
         loadBookings(true);
@@ -75,7 +85,7 @@ export default function BookingsScreen() {
         } as any);
     };
 
-    if (loading) {
+    if (loading && bookings.length === 0) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={Colors.primary} />
@@ -151,7 +161,7 @@ export default function BookingsScreen() {
                         <Text style={styles.emptyText}>Chưa có lịch đặt sân nào</Text>
                         <TouchableOpacity
                             style={styles.emptyButton}
-                            onPress={() => router.push('/courts' as any)}
+                            onPress={() => router.push('/(tabs)/courts' as any)}
                         >
                             <Text style={styles.emptyButtonText}>Đặt sân ngay</Text>
                         </TouchableOpacity>
@@ -162,6 +172,7 @@ export default function BookingsScreen() {
     );
 }
 
+// Styles giữ nguyên
 const styles = StyleSheet.create({
     container: {
         flex: 1,

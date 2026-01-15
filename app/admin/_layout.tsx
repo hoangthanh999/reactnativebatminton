@@ -61,6 +61,16 @@ export default function AdminLayout() {
                     ),
                 }}
             />
+            <Tabs.Screen
+                name="courts"
+                options={{
+                    title: 'Quản lý sân',
+                    tabBarIcon: ({ color, size }) => (
+                        <Text style={{ fontSize: size }}>🏸</Text>
+                    ),
+                }}
+            />
         </Tabs>
+
     );
 }
