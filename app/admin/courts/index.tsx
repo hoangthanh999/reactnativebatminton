@@ -1,4 +1,4 @@
-// app/admin/courts.tsx (tạo file mới)
+// app/admin/courts/index.tsx
 import CourtCard from '@/components/courts/CourtCard';
 import { Colors } from '@/constants/Colors';
 import { Court, courtService } from '@/services/courtService';
