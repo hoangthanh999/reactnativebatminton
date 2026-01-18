@@ -3,8 +3,10 @@ import BookingCard from '@/components/bookings/BookingCard';
 import Avatar from '@/components/ui/Avatar';
 import Card from '@/components/ui/Card';
 import { Colors } from '@/constants/Colors';
-import { Booking, bookingService } from '@/services/bookingService';
+import { Booking } from '@/services/bookingService';
 import { UserProfile, userService } from '@/services/userService';
+import { useMyBookings } from '@/hooks/useMyBookings'; // Import Hook
+import { LinearGradient } from 'expo-linear-gradient'; // For better header
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -24,17 +26,8 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const { bookings, stats, loading: bookingsLoading, refreshing: bookingsRefreshing, refresh } = useMyBookings();
 
-  // Stats
-  const [stats, setStats] = useState({
-    totalBookings: 0,
-    confirmedBookings: 0,
-    pendingBookings: 0,
-    completedBookings: 0,
-  });
 
   const loadUserData = useCallback(async () => {
     try {
@@ -45,49 +38,16 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const loadBookings = useCallback(async (isRefresh = false) => {
-    try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
-      const response = await bookingService.getMyBookings(0, 5);
-
-      if (response.success) {
-        const bookingData = response.data.content;
-        setBookings(bookingData);
-
-        // Calculate stats
-        setStats({
-          totalBookings: response.data.totalElements,
-          confirmedBookings: bookingData.filter((b: Booking) => b.status === 'CONFIRMED').length,
-          pendingBookings: bookingData.filter((b: Booking) => b.status === 'PENDING').length,
-          completedBookings: bookingData.filter((b: Booking) => b.status === 'COMPLETED').length,
-        });
-      }
-    } catch (error: any) {
-      console.error('Load bookings error:', error);
-      // Không hiển thị alert nếu chưa đăng nhập
-      if (error.response?.status !== 401) {
-        Alert.alert('Lỗi', 'Không thể tải danh sách đặt sân');
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
   useEffect(() => {
     loadUserData();
-    loadBookings();
-  }, [loadUserData, loadBookings]);
+  }, [loadUserData]);
 
   const onRefresh = useCallback(() => {
     loadUserData();
-    loadBookings(true);
-  }, [loadUserData, loadBookings]);
+    refresh();
+  }, [loadUserData, refresh]);
+
+
 
   const navigateToBookings = useCallback(() => {
     // Sử dụng replace thay vì push cho tab navigation
@@ -143,7 +103,7 @@ export default function HomeScreen() {
     } as any);
   }, []);
 
-  if (loading && !refreshing) {
+  if (bookingsLoading && !bookingsRefreshing) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
@@ -157,7 +117,13 @@ export default function HomeScreen() {
       <StatusBar style="light" />
 
       {/* Header */}
-      <View style={styles.header}>
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={[Colors.primary, '#4c669f']} // Add a gradient
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <View>
           <Text style={styles.greeting}>Xin chào 👋</Text>
           <Text style={styles.userName}>{user?.fullName || 'Người dùng'}</Text>
@@ -165,14 +131,14 @@ export default function HomeScreen() {
         <TouchableOpacity onPress={navigateToProfile}>
           <Avatar name={user?.fullName || 'User'} size={50} />
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={bookingsRefreshing}
             onRefresh={onRefresh}
             colors={[Colors.primary]}
           />
@@ -348,6 +314,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 2,
   },
   quickActionEmoji: {
     fontSize: 28,

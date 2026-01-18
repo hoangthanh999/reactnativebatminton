@@ -1,7 +1,8 @@
 // app/(tabs)/courts.tsx
 import CourtCard from '@/components/courts/CourtCard';
 import { Colors } from '@/constants/Colors';
-import { Court, courtService } from '@/services/courtService';
+import { Court } from '@/services/courtService';
+import { useCourts } from '@/hooks/useCourts';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -23,83 +24,25 @@ export default function CourtsScreen() {
     const router = useRouter();
     const [filter, setFilter] = useState<FilterType>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [courts, setCourts] = useState<Court[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [page, setPage] = useState(0);
-
-    // Load courts
-    const loadCourts = useCallback(async (pageNum = 0, isRefresh = false) => {
-        try {
-            if (isRefresh) {
-                setRefreshing(true);
-            } else {
-                setLoading(true);
-            }
-
-            const response = await courtService.getAllCourts(pageNum, 10);
-
-            if (response.success) {
-                const newCourts = response.data.content;
-
-                if (isRefresh || pageNum === 0) {
-                    setCourts(newCourts);
-                } else {
-                    setCourts(prev => [...prev, ...newCourts]);
-                }
-
-                setPage(pageNum);
-            }
-        } catch (error: any) {
-            console.error('Load courts error:', error);
-            Alert.alert('Lỗi', error.response?.data?.message || 'Không thể tải danh sách sân');
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    }, []);
-
-    // Search courts
-    const searchCourts = useCallback(async () => {
-        try {
-            setLoading(true);
-            const response = await courtService.searchCourts({
-                name: searchQuery || undefined,
-                page: 0,
-                size: 20,
-            });
-
-            if (response.success) {
-                setCourts(response.data.content);
-            }
-        } catch (error: any) {
-            console.error('Search courts error:', error);
-            Alert.alert('Lỗi', 'Không thể tìm kiếm sân');
-        } finally {
-            setLoading(false);
-        }
-    }, [searchQuery]);
-
-    useEffect(() => {
-        loadCourts(0);
-    }, [loadCourts]);
+    const { courts, loading, refreshing, search } = useCourts();
 
     // Debounce search
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (searchQuery) {
-                searchCourts();
-            } else {
-                loadCourts(0);
-            }
+            // Pass params to search function from hook
+            search({
+                name: searchQuery || undefined,
+                page: 0,
+                size: 20
+            }, false);
         }, 500);
 
         return () => clearTimeout(timer);
-    }, [searchQuery, searchCourts, loadCourts]);
+    }, [searchQuery, search]);
 
     const onRefresh = useCallback(() => {
-        loadCourts(0, true);
-    }, [loadCourts]);
+        search({ name: searchQuery || undefined, page: 0, size: 20 }, true);
+    }, [search, searchQuery]);
 
     // Filter courts
     const filteredCourts = courts.filter(court => {
@@ -182,7 +125,7 @@ export default function CourtsScreen() {
             </ScrollView>
 
             {/* Courts List */}
-            {loading && page === 0 ? (
+            {loading ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={Colors.primary} />
                     <Text style={styles.loadingText}>Đang tải...</Text>

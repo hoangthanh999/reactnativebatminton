@@ -43,6 +43,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="shop"
+        options={{
+          title: 'Cửa hàng',
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ fontSize: size }}>🛍️</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="bookings"
         options={{
           title: 'Lịch đặt',

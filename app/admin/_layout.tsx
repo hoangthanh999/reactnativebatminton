@@ -10,7 +10,6 @@ export default function AdminLayout() {
     const router = useRouter();
 
     useEffect(() => {
-        // Kiểm tra quyền admin
         if (!isAuthenticated) {
             Alert.alert('Lỗi', 'Vui lòng đăng nhập');
             router.replace('/(auth)/login');
@@ -61,6 +60,7 @@ export default function AdminLayout() {
                     ),
                 }}
             />
+            {/* Quan trọng: name phải là "courts" không có gì khác */}
             <Tabs.Screen
                 name="courts"
                 options={{
@@ -68,9 +68,9 @@ export default function AdminLayout() {
                     tabBarIcon: ({ color, size }) => (
                         <Text style={{ fontSize: size }}>🏸</Text>
                     ),
+                    headerShown: false, // Để Stack tự quản lý header
                 }}
             />
         </Tabs>
-
     );
 }

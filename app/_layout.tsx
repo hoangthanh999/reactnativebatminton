@@ -1,5 +1,6 @@
 // app/_layout.tsx
 import { AuthProvider } from '@/contexts/AuthContext';
+import { CartProvider } from '@/contexts/CartContext';
 import { isAuthenticated } from '@/services/authService';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
@@ -55,7 +56,9 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <CartProvider>
+        <RootLayoutNav />
+      </CartProvider>
     </AuthProvider>
   );
 }
