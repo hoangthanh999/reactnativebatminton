@@ -70,9 +70,6 @@ export default function LoginScreen() {
             console.log('🔄 Updating auth context...');
             setAuthUser(response.data.user);
 
-            console.log('⏳ Waiting for auth context to update...');
-            await new Promise(resolve => setTimeout(resolve, 500));
-
             console.log('🚀 Login complete, navigation should happen automatically');
         } catch (error: any) {
             console.error('❌ LOGIN ERROR:', error);

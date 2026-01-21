@@ -1,5 +1,6 @@
+// components/ui/Input.tsx - VERSION FIX
 import { Colors } from '@/constants/Colors';
-import React, { useState } from 'react';
+import React, { forwardRef, useState } from 'react';
 import {
     StyleSheet,
     Text,
@@ -19,7 +20,7 @@ interface InputProps extends TextInputProps {
     isPassword?: boolean;
 }
 
-export default function Input({
+const Input = forwardRef<TextInput, InputProps>(({
     label,
     error,
     icon,
@@ -27,7 +28,7 @@ export default function Input({
     containerStyle,
     isPassword = false,
     ...props
-}: InputProps) {
+}, ref) => {
     const [isFocused, setIsFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -45,10 +46,17 @@ export default function Input({
                 {icon && <Text style={styles.icon}>{icon}</Text>}
 
                 <TextInput
+                    ref={ref}
                     style={styles.input}
                     placeholderTextColor={Colors.textSecondary}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
+                    onFocus={(e) => {
+                        setIsFocused(true);
+                        props.onFocus?.(e);
+                    }}
+                    onBlur={(e) => {
+                        setIsFocused(false);
+                        props.onBlur?.(e);
+                    }}
                     secureTextEntry={isPassword && !showPassword}
                     {...props}
                 />
@@ -57,6 +65,7 @@ export default function Input({
                     <TouchableOpacity
                         onPress={() => setShowPassword(!showPassword)}
                         style={styles.eyeButton}
+                        activeOpacity={0.7}
                     >
                         <Text style={styles.eyeIcon}>
                             {showPassword ? '👁️' : '👁️‍🗨️'}
@@ -67,10 +76,14 @@ export default function Input({
                 {rightIcon}
             </View>
 
-            {error && <Text style={styles.errorText}>{error}</Text>}
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
         </View>
     );
-}
+});
+
+Input.displayName = 'Input';
+
+export default Input;
 
 const styles = StyleSheet.create({
     container: {
@@ -96,11 +109,7 @@ const styles = StyleSheet.create({
     inputFocused: {
         borderColor: Colors.primary,
         backgroundColor: Colors.white,
-        shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+
     },
     inputError: {
         borderColor: Colors.error,
@@ -114,9 +123,12 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: Colors.text,
         paddingVertical: 0,
+        // ✅ THÊM: Đảm bảo input không bị re-render
+        height: '100%',
     },
     eyeButton: {
         padding: 8,
+        marginLeft: 4,
     },
     eyeIcon: {
         fontSize: 20,

@@ -1,44 +1,28 @@
-// app/_layout.tsx
-import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
-import { isAuthenticated } from '@/services/authService';
 import { Stack, useRouter, useSegments } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 function RootLayoutNav() {
+  const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const [isReady, setIsReady] = useState(false);
-
-  const checkAuth = useCallback(async () => {
-    try {
-      console.log('🔍 Checking auth... Segments:', segments);
-      const authenticated = await isAuthenticated();
-      console.log('🔐 Authenticated:', authenticated);
-
-      const inAuthGroup = segments[0] === '(auth)';
-      console.log('📍 In auth group:', inAuthGroup);
-
-      if (!authenticated && !inAuthGroup) {
-        console.log('➡️ Redirecting to login...');
-        router.replace('/(auth)/login');
-      } else if (authenticated && inAuthGroup) {
-        console.log('➡️ Redirecting to tabs...');
-        router.replace('/(tabs)');
-      }
-
-      setIsReady(true);
-    } catch (error) {
-      console.error('❌ Auth check error:', error);
-      setIsReady(true);
-    }
-  }, [segments, router]);
 
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    if (isLoading) return;
 
-  if (!isReady) {
+    const inAuthGroup = segments[0] === '(auth)';
+
+    if (isAuthenticated && inAuthGroup) {
+      console.log('➡️ Redirecting to tabs...');
+      router.replace('/(tabs)');
+    } else if (!isAuthenticated && !inAuthGroup) {
+      console.log('➡️ Redirecting to login...');
+      router.replace('/(auth)/login');
+    }
+  }, [isAuthenticated, isLoading, segments]);
+
+  if (isLoading) {
     return null;
   }
 
