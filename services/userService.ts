@@ -1,4 +1,4 @@
-// services/userService.ts
+// services/userService.ts - VERSION ĐẦY ĐỦ
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import apiClient from "./apiClient";
 
@@ -9,6 +9,11 @@ export interface UserProfile {
     phone: string;
     role: 'USER' | 'OWNER' | 'ADMIN';
     createdAt: string;
+}
+
+export interface ChangePasswordRequest {
+    oldPassword: string;
+    newPassword: string;
 }
 
 export const userService = {
@@ -62,4 +67,20 @@ export const userService = {
             throw error;
         }
     },
+
+    // ✅ THÊM FUNCTION NÀY
+    changePassword: async (data: ChangePasswordRequest): Promise<void> => {
+        try {
+            console.log('📤 Changing password...');
+            const response = await apiClient.put('/users/change-password', data);
+            console.log('✅ Password changed successfully');
+            return response.data;
+        } catch (error: any) {
+            console.error('❌ Change password error:', error.response?.data || error);
+            throw error;
+        }
+    },
 };
+
+// ✅ Export named function để dùng trong component
+export const changePassword = userService.changePassword;

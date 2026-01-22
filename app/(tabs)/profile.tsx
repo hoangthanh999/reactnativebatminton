@@ -1,11 +1,11 @@
-// app/(tabs)/profile.tsx - Thêm menu Admin
-
+// app/(tabs)/profile.tsx - VERSION HOÀN CHỈNH
+import ChangePasswordModal from '@/components/profile/ChangePasswordModal';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/contexts/AuthContext';
 import { logout } from '@/services/authService';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useState } from 'react';
 import {
     Alert,
     Platform,
@@ -19,6 +19,7 @@ import {
 export default function ProfileScreen() {
     const { user, logout: logoutContext } = useAuth();
     const router = useRouter();
+    const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
 
     console.log('USER:', user);
     console.log('ROLE:', user?.role);
@@ -109,7 +110,10 @@ export default function ProfileScreen() {
                             <Text style={styles.menuArrow}>›</Text>
                         </TouchableOpacity>
                         <View style={styles.divider} />
-                        <TouchableOpacity style={styles.menuItem}>
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => setShowChangePasswordModal(true)}
+                        >
                             <Text style={styles.menuIcon}>🔒</Text>
                             <Text style={styles.menuText}>Đổi mật khẩu</Text>
                             <Text style={styles.menuArrow}>›</Text>
@@ -153,6 +157,12 @@ export default function ProfileScreen() {
 
                 <View style={{ height: 100 }} />
             </ScrollView>
+
+            {/* Change Password Modal */}
+            <ChangePasswordModal
+                visible={showChangePasswordModal}
+                onClose={() => setShowChangePasswordModal(false)}
+            />
         </View>
     );
 }
