@@ -1,3 +1,4 @@
+// app/_layout.tsx
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CartProvider } from '@/contexts/CartContext';
 import { Stack, useRouter, useSegments } from 'expo-router';
@@ -20,7 +21,7 @@ function RootLayoutNav() {
       console.log('➡️ Redirecting to login...');
       router.replace('/(auth)/login');
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, router]); // ← THÊM router
 
   if (isLoading) {
     return null;
@@ -30,7 +31,7 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="admin" /> {/* ✅ Không có dấu ngoặc */}
+      <Stack.Screen name="admin" />
       <Stack.Screen name="courts/[id]" />
       <Stack.Screen name="bookings/[id]" />
     </Stack>

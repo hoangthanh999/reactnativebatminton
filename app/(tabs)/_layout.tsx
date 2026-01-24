@@ -43,6 +43,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="chat"  // ← THÊM MỚI
+        options={{
+          title: 'AI Chat',
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ fontSize: size }}>🤖</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="shop"
         options={{
           title: 'Cửa hàng',
