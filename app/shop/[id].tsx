@@ -13,6 +13,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ProductDetailScreen() {
     const { id } = useLocalSearchParams();
@@ -22,6 +23,7 @@ export default function ProductDetailScreen() {
     const [product, setProduct] = useState<ProductDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
+    const insets = useSafeAreaInsets();
     const [selectedImage, setSelectedImage] = useState(0);
 
     useEffect(() => {
@@ -62,7 +64,7 @@ export default function ProductDetailScreen() {
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Text style={styles.backIcon}>←</Text>
                 </TouchableOpacity>
@@ -169,14 +171,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
         flexDirection: 'row',
-        alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingTop: 50,
         paddingBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        zIndex: 10,
     },
     backButton: {
         padding: 8,

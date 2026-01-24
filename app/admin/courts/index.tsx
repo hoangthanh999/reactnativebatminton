@@ -15,11 +15,13 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AdminCourtsScreen() {
     const router = useRouter();
     const [courts, setCourts] = useState<Court[]>([]);
     const [loading, setLoading] = useState(true);
+    const insets = useSafeAreaInsets();
     const [refreshing, setRefreshing] = useState(false);
 
     const loadCourts = useCallback(async (isRefresh = false) => {
@@ -141,7 +143,7 @@ export default function AdminCourtsScreen() {
             <StatusBar style="light" />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
                 <Text style={styles.headerTitle}>Quản lý sân</Text>
                 <TouchableOpacity
                     style={styles.addButton}
@@ -209,7 +211,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingTop: 60,
         paddingBottom: 20,
         paddingHorizontal: 24,
         backgroundColor: Colors.primary,

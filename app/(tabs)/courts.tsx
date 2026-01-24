@@ -17,6 +17,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type FilterType = 'all' | 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
 
@@ -25,6 +26,7 @@ export default function CourtsScreen() {
     const [filter, setFilter] = useState<FilterType>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const { courts, loading, refreshing, search } = useCourts();
+    const insets = useSafeAreaInsets();
 
     // Debounce search
     useEffect(() => {
@@ -70,7 +72,7 @@ export default function CourtsScreen() {
             <StatusBar style="light" />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
                 <Text style={styles.headerTitle}>Danh sách sân</Text>
                 <Text style={styles.headerSubtitle}>
                     {filteredCourts.length} sân có sẵn
@@ -171,7 +173,6 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background,
     },
     header: {
-        paddingTop: 60,
         paddingBottom: 20,
         paddingHorizontal: 24,
         backgroundColor: Colors.primary,

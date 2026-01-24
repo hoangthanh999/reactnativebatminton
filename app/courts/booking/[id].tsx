@@ -15,12 +15,14 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CourtBookingScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const [court, setCourt] = useState<Court | null>(null);
     const [loading, setLoading] = useState(true);
+    const insets = useSafeAreaInsets();
     const [booking, setBooking] = useState(false);
 
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -236,10 +238,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingTop: 60,
         paddingBottom: 20,
         paddingHorizontal: 24,
         backgroundColor: Colors.primary,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
     },
     backIcon: {
         fontSize: 24,

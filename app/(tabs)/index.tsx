@@ -21,12 +21,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const { bookings, stats, loading: bookingsLoading, refreshing: bookingsRefreshing, refresh } = useMyBookings();
+  const insets = useSafeAreaInsets();
 
 
   const loadUserData = useCallback(async () => {
@@ -122,7 +124,7 @@ export default function HomeScreen() {
         colors={[Colors.primary, '#4c669f']} // Add a gradient
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
         <View>
           <Text style={styles.greeting}>Xin chào 👋</Text>
@@ -258,7 +260,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 24,
     backgroundColor: Colors.primary,

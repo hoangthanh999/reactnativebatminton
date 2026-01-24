@@ -18,13 +18,16 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EditCourtScreen() {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
+    const insets = useSafeAreaInsets();
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [imageLoading, setImageLoading] = useState(false);
     const [uploadingImages, setUploadingImages] = useState(false);
     const [court, setCourt] = useState<Court | null>(null);
 
@@ -235,7 +238,7 @@ export default function EditCourtScreen() {
             <StatusBar style="light" />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
                 <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => router.back()}
@@ -508,10 +511,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingTop: 60,
         paddingBottom: 20,
         paddingHorizontal: 24,
         backgroundColor: Colors.primary,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
     },
     backButton: {
         width: 40,

@@ -14,13 +14,15 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function BookingDetailScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const [booking, setBooking] = useState<Booking | null>(null);
     const [loading, setLoading] = useState(true);
-    const [cancelling, setCancelling] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false);
+    const insets = useSafeAreaInsets();
     const [paymentModalVisible, setPaymentModalVisible] = useState(false);
     const [checkingPayment, setCheckingPayment] = useState(false);
 
@@ -66,7 +68,7 @@ export default function BookingDetailScreen() {
         if (!booking) return;
 
         try {
-            setCancelling(true);
+            setActionLoading(true);
             const response = await bookingService.cancelBooking(booking.id);
 
             if (response.success) {
@@ -78,7 +80,7 @@ export default function BookingDetailScreen() {
             console.error('Cancel booking error:', error);
             Alert.alert('Lỗi', error.response?.data?.message || 'Không thể hủy đặt sân');
         } finally {
-            setCancelling(false);
+            setActionLoading(false);
         }
     };
 
@@ -153,7 +155,7 @@ export default function BookingDetailScreen() {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
                 <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                     <Text style={styles.backIcon}>←</Text>
                 </TouchableOpacity>
@@ -297,11 +299,11 @@ export default function BookingDetailScreen() {
                 )}
                 {canCancel && (
                     <TouchableOpacity
-                        style={[styles.cancelButton, cancelling && styles.cancelButtonDisabled]}
+                        style={[styles.cancelButton, actionLoading && styles.cancelButtonDisabled]}
                         onPress={handleCancelBooking}
-                        disabled={cancelling}
+                        disabled={actionLoading}
                     >
-                        {cancelling ? (
+                        {actionLoading ? (
                             <ActivityIndicator color={Colors.white} />
                         ) : (
                             <Text style={styles.cancelButtonText}>Hủy đặt sân</Text>
@@ -343,10 +345,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingTop: 60,
         paddingBottom: 20,
         paddingHorizontal: 24,
         backgroundColor: Colors.primary,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
     },
     backButton: {
         width: 40,

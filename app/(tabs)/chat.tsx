@@ -10,15 +10,20 @@ import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import {
     Alert,
+    KeyboardAvoidingView,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 
 export default function ChatScreen() {
     const { messages, loading, sendMessage, handleQuickAction, clearChat, scrollViewRef } = useChat();
+    const insets = useSafeAreaInsets();
 
     const handleClearChat = () => {
         Alert.alert(
@@ -32,6 +37,11 @@ export default function ChatScreen() {
     };
 
     const renderMessage = (message: any, index: number) => {
+        // ✅ THÊM DEBUG
+        console.log('🔵 Rendering message:', index);
+        console.log('🔵 Message type:', message.messageType);
+        console.log('🔵 Quick actions:', message.quickActions);
+
         return (
             <View key={index}>
                 {/* User Message */}
@@ -84,18 +94,31 @@ export default function ChatScreen() {
                         {/* Quick Actions */}
                         {message.quickActions && message.quickActions.length > 0 && (
                             <View style={styles.quickActionsContainer}>
+                                {/* ✅ THÊM DEBUG UI */}
+                                <Text style={{
+                                    color: 'red',
+                                    padding: 10,
+                                    backgroundColor: 'yellow',
+                                    fontWeight: 'bold'
+                                }}>
+                                    🔍 DEBUG: {message.quickActions.length} quick actions
+                                </Text>
+
                                 <ScrollView
                                     horizontal
                                     showsHorizontalScrollIndicator={false}
                                     contentContainerStyle={styles.quickActionsContent}
                                 >
-                                    {message.quickActions.map((action: any, idx: number) => (
-                                        <QuickActionButton
-                                            key={idx}
-                                            action={action}
-                                            onPress={handleQuickAction}
-                                        />
-                                    ))}
+                                    {message.quickActions.map((action: any, idx: number) => {
+                                        console.log(`🔵 Rendering quick action ${idx}:`, action);
+                                        return (
+                                            <QuickActionButton
+                                                key={idx}
+                                                action={action}
+                                                onPress={handleQuickAction}
+                                            />
+                                        );
+                                    })}
                                 </ScrollView>
                             </View>
                         )}
@@ -106,11 +129,15 @@ export default function ChatScreen() {
     };
 
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
             <StatusBar style="light" />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
                 <View>
                     <Text style={styles.headerTitle}>🤖 AI Assistant</Text>
                     <Text style={styles.headerSubtitle}>
@@ -130,6 +157,7 @@ export default function ChatScreen() {
                 style={styles.messagesContainer}
                 contentContainerStyle={styles.messagesContent}
                 showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
             >
                 {messages.length === 0 ? (
                     <View style={styles.emptyState}>
@@ -154,7 +182,7 @@ export default function ChatScreen() {
 
             {/* Input */}
             <ChatInput onSend={sendMessage} loading={loading} />
-        </View>
+        </KeyboardAvoidingView>
     );
 }
 
@@ -167,7 +195,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingTop: 60,
         paddingBottom: 20,
         paddingHorizontal: 24,
         backgroundColor: Colors.primary,

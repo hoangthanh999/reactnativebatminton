@@ -14,6 +14,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 
 export default function ShopScreen() {
@@ -22,6 +23,7 @@ export default function ShopScreen() {
         products, categories, loading, loadProducts, initShop
     } = useProducts();
     const { itemCount } = useCart();
+    const insets = useSafeAreaInsets();
 
     const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +75,7 @@ export default function ShopScreen() {
             <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
                 <View style={styles.searchBar}>
                     <Text style={styles.searchIcon}>🔍</Text>
                     <TextInput
@@ -156,7 +158,6 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: Colors.primary,
-        paddingTop: 50,
         paddingBottom: 16,
         paddingHorizontal: 16,
         flexDirection: 'row',
@@ -284,7 +285,7 @@ const styles = StyleSheet.create({
     },
     emptyState: {
         alignItems: 'center',
-        paddingTop: 50,
+        paddingTop: 20,
     },
     emptyText: {
         color: '#999',

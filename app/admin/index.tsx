@@ -16,13 +16,17 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
 export default function AdminDashboard() {
-    const { user } = useAuth();
+    const router = useRouter();
+    const { user, logout } = useAuth();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const insets = useSafeAreaInsets();
     const [stats, setStats] = useState({
         totalBookings: 0,
         pendingBookings: 0,
@@ -176,7 +180,12 @@ export default function AdminDashboard() {
             <StatusBar style="light" />
 
             {/* Header */}
-            <View style={styles.header}>
+            <LinearGradient
+                colors={[Colors.primary, '#4c669f']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.header, { paddingTop: insets.top + 20 }]}
+            >
                 <View>
                     <Text style={styles.greeting}>Xin chào Admin 👋</Text>
                     <Text style={styles.userName}>{user?.fullName}</Text>
@@ -188,7 +197,7 @@ export default function AdminDashboard() {
                         </Text>
                     </View>
                 </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
             <ScrollView
                 style={styles.scrollView}
@@ -287,10 +296,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingTop: 60,
-        paddingBottom: 20,
+        paddingBottom: 30,
         paddingHorizontal: 24,
-        backgroundColor: Colors.primary,
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,
     },

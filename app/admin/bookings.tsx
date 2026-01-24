@@ -15,6 +15,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type FilterType = 'ALL' | 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 
@@ -23,7 +24,8 @@ export default function AdminBookingsScreen() {
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [filter, setFilter] = useState<FilterType>('PENDING');
+    const [filter, setFilter] = useState<FilterType>('ALL');
+    const insets = useSafeAreaInsets();
 
     // app/admin/bookings.tsx - Sửa hàm loadBookings
 
@@ -160,7 +162,7 @@ export default function AdminBookingsScreen() {
             <StatusBar style="light" />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
                 <Text style={styles.headerTitle}>Quản lý đặt sân</Text>
                 <Text style={styles.headerSubtitle}>
                     {filteredBookings.length} lịch đặt
@@ -244,7 +246,6 @@ const styles = StyleSheet.create({
         color: Colors.textSecondary,
     },
     header: {
-        paddingTop: 60,
         paddingBottom: 20,
         paddingHorizontal: 24,
         backgroundColor: Colors.primary,

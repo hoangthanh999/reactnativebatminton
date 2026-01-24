@@ -15,11 +15,14 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient'; // Added import for LinearGradient
 
 export default function ProfileScreen() {
     const { user, logout: logoutContext } = useAuth();
     const router = useRouter();
     const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+    const insets = useSafeAreaInsets(); // Added this line
 
     console.log('USER:', user);
     console.log('ROLE:', user?.role);
@@ -64,7 +67,12 @@ export default function ProfileScreen() {
             <StatusBar style="light" />
 
             {/* Header */}
-            <View style={styles.header}>
+            <LinearGradient // Changed View to LinearGradient
+                colors={[Colors.primary, '#4c669f']} // Added colors for gradient
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.header, { paddingTop: insets.top + 20 }]} // Added paddingTop using insets
+            >
                 <View style={styles.avatarContainer}>
                     <View style={styles.avatar}>
                         <Text style={styles.avatarText}>
@@ -80,7 +88,7 @@ export default function ProfileScreen() {
                             user?.role === 'OWNER' ? '🏢 Chủ sân' : '👤 Người dùng'}
                     </Text>
                 </View>
-            </View>
+            </LinearGradient> {/* Changed View to LinearGradient */}
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Admin Menu - Chỉ hiện cho ADMIN và OWNER */}
@@ -173,10 +181,10 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background,
     },
     header: {
-        paddingTop: 60,
+        // paddingTop: 60, // Removed this line as it's now handled by insets
         paddingBottom: 30,
         paddingHorizontal: 24,
-        backgroundColor: Colors.primary,
+        // backgroundColor: Colors.primary, // Removed this line as LinearGradient handles background
         alignItems: 'center',
         borderBottomLeftRadius: 30,
         borderBottomRightRadius: 30,

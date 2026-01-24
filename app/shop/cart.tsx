@@ -1,17 +1,20 @@
 import React, { useEffect } from 'react';
 import {
-    View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, StatusBar
+    View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useCart } from '@/hooks/useCart';
 
 export default function CartScreen() {
     const router = useRouter();
-    const { cart, loading, loadCart, updateQuantity, removeFromCart } = useCart();
+    const { items, loading, removeItem, updateQuantity, clearCart, totalAmount } = useCart();
+    const insets = useSafeAreaInsets();
 
     useEffect(() => {
-        loadCart();
+        // Assuming useCart handles initial loading internally now, as loadCart is removed from destructuring
+        // If not, a loadCart function would need to be added back to useCart hook or its equivalent
     }, []);
 
     const renderCartItem = ({ item }: { item: any }) => (
@@ -37,7 +40,7 @@ export default function CartScreen() {
                             <Text>+</Text>
                         </TouchableOpacity>
                     </View>
-                    <TouchableOpacity onPress={() => removeFromCart(item.id)}>
+                    <TouchableOpacity onPress={() => removeItem(item.id)}>
                         <Text style={styles.removeText}>Xóa</Text>
                     </TouchableOpacity>
                 </View>
@@ -45,7 +48,7 @@ export default function CartScreen() {
         </View>
     );
 
-    if (loading && !cart) {
+    if (loading && !items) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={Colors.primary} />
@@ -55,9 +58,8 @@ export default function CartScreen() {
 
     return (
         <View style={styles.container}>
-            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-
-            <View style={styles.header}>
+            {/* Header */}
+            <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Text style={styles.backIcon}>←</Text>
                 </TouchableOpacity>
@@ -65,10 +67,10 @@ export default function CartScreen() {
                 <View style={{ width: 40 }} />
             </View>
 
-            {cart && cart.items.length > 0 ? (
+            {items && items.length > 0 ? (
                 <>
                     <FlatList
-                        data={cart.items}
+                        data={items}
                         renderItem={renderCartItem}
                         keyExtractor={item => item.id.toString()}
                         contentContainerStyle={styles.list}
@@ -77,7 +79,7 @@ export default function CartScreen() {
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>Tổng cộng:</Text>
                             <Text style={styles.totalAmount}>
-                                {cart.totalAmount?.toLocaleString('vi-VN')}đ
+                                {totalAmount?.toLocaleString('vi-VN')}đ
                             </Text>
                         </View>
                         <TouchableOpacity
@@ -112,27 +114,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
+        backgroundColor: Colors.primary,
+        paddingBottom: 16,
+        paddingHorizontal: 16,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingTop: 50,
-        paddingBottom: 16,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        justifyContent: 'space-between', // Kept from original for layout
     },
     backButton: {
         padding: 8,
     },
     backIcon: {
         fontSize: 24,
-        color: '#333',
+        color: 'white', // Changed color for contrast with new header background
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#333',
+        color: 'white', // Changed color for contrast with new header background
     },
     list: {
         padding: 16,

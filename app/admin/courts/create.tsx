@@ -20,11 +20,13 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CreateCourtScreen() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [uploadingImages, setUploadingImages] = useState(false);
+    const [imageLoading, setImageLoading] = useState(false);
+    const insets = useSafeAreaInsets();
 
     // Form state
     const [name, setName] = useState('');
@@ -66,13 +68,13 @@ export default function CreateCourtScreen() {
         try {
             const imageUri = await cloudinaryService.pickImage();
             if (imageUri) {
-                setUploadingImages(true);
+                setImageLoading(true);
                 const result = await cloudinaryService.uploadImage(imageUri, 'courts');
                 setImages([...images, result.secure_url]);
-                setUploadingImages(false);
+                setImageLoading(false);
             }
         } catch (error: any) {
-            setUploadingImages(false);
+            setImageLoading(false);
             Alert.alert('Lỗi', error.message || 'Không thể upload ảnh');
         }
     };
@@ -81,13 +83,13 @@ export default function CreateCourtScreen() {
         try {
             const imageUri = await cloudinaryService.takePhoto();
             if (imageUri) {
-                setUploadingImages(true);
+                setImageLoading(true);
                 const result = await cloudinaryService.uploadImage(imageUri, 'courts');
                 setImages([...images, result.secure_url]);
-                setUploadingImages(false);
+                setImageLoading(false);
             }
         } catch (error: any) {
-            setUploadingImages(false);
+            setImageLoading(false);
             Alert.alert('Lỗi', error.message || 'Không thể chụp ảnh');
         }
     };
@@ -178,7 +180,7 @@ export default function CreateCourtScreen() {
             <StatusBar style="light" />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
                 <TouchableOpacity
                     style={styles.backButton}
                     onPress={() => router.back()}
@@ -224,9 +226,9 @@ export default function CreateCourtScreen() {
                                     <TouchableOpacity
                                         style={styles.addImageButton}
                                         onPress={handlePickImage}
-                                        disabled={uploadingImages}
+                                        disabled={imageLoading}
                                     >
-                                        {uploadingImages ? (
+                                        {imageLoading ? (
                                             <ActivityIndicator color={Colors.primary} />
                                         ) : (
                                             <>
@@ -239,9 +241,9 @@ export default function CreateCourtScreen() {
                                     <TouchableOpacity
                                         style={styles.addImageButton}
                                         onPress={handleTakePhoto}
-                                        disabled={uploadingImages}
+                                        disabled={imageLoading}
                                     >
-                                        {uploadingImages ? (
+                                        {imageLoading ? (
                                             <ActivityIndicator color={Colors.primary} />
                                         ) : (
                                             <>
@@ -410,9 +412,9 @@ export default function CreateCourtScreen() {
             {/* Submit Button */}
             <View style={styles.footer}>
                 <TouchableOpacity
-                    style={[styles.submitButton, (loading || uploadingImages) && styles.submitButtonDisabled]}
+                    style={[styles.submitButton, (loading || imageLoading) && styles.submitButtonDisabled]}
                     onPress={handleSubmit}
-                    disabled={loading || uploadingImages}
+                    disabled={loading || imageLoading}
                 >
                     {loading ? (
                         <ActivityIndicator color={Colors.white} />
@@ -433,11 +435,13 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingTop: 60,
+        // justifyContent: 'space-between', // Removed
+        // paddingTop: 60, // Removed, now dynamic
         paddingBottom: 20,
         paddingHorizontal: 24,
         backgroundColor: Colors.primary,
+        borderBottomLeftRadius: 30,
+        borderBottomRightRadius: 30,
     },
     backButton: {
         width: 40,
