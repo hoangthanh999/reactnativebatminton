@@ -9,13 +9,12 @@ import { useCart } from '@/hooks/useCart';
 
 export default function CartScreen() {
     const router = useRouter();
-    const { items, loading, removeItem, updateQuantity, clearCart, totalAmount } = useCart();
+    const { cart, loading, removeFromCart, updateQuantity, refreshCart } = useCart();
     const insets = useSafeAreaInsets();
 
     useEffect(() => {
-        // Assuming useCart handles initial loading internally now, as loadCart is removed from destructuring
-        // If not, a loadCart function would need to be added back to useCart hook or its equivalent
-    }, []);
+        refreshCart();
+    }, [refreshCart]);
 
     const renderCartItem = ({ item }: { item: any }) => (
         <View style={styles.cartItem}>
@@ -40,7 +39,7 @@ export default function CartScreen() {
                             <Text>+</Text>
                         </TouchableOpacity>
                     </View>
-                    <TouchableOpacity onPress={() => removeItem(item.id)}>
+                    <TouchableOpacity onPress={() => removeFromCart(item.id)}>
                         <Text style={styles.removeText}>Xóa</Text>
                     </TouchableOpacity>
                 </View>
@@ -48,7 +47,7 @@ export default function CartScreen() {
         </View>
     );
 
-    if (loading && !items) {
+    if (loading && !cart) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={Colors.primary} />
@@ -67,10 +66,10 @@ export default function CartScreen() {
                 <View style={{ width: 40 }} />
             </View>
 
-            {items && items.length > 0 ? (
+            {cart?.items && cart.items.length > 0 ? (
                 <>
                     <FlatList
-                        data={items}
+                        data={cart.items}
                         renderItem={renderCartItem}
                         keyExtractor={item => item.id.toString()}
                         contentContainerStyle={styles.list}
@@ -79,7 +78,7 @@ export default function CartScreen() {
                         <View style={styles.totalRow}>
                             <Text style={styles.totalLabel}>Tổng cộng:</Text>
                             <Text style={styles.totalAmount}>
-                                {totalAmount?.toLocaleString('vi-VN')}đ
+                                {cart.totalAmount?.toLocaleString('vi-VN')}đ
                             </Text>
                         </View>
                         <TouchableOpacity

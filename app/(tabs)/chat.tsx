@@ -37,11 +37,6 @@ export default function ChatScreen() {
     };
 
     const renderMessage = (message: any, index: number) => {
-        // ✅ THÊM DEBUG
-        console.log('🔵 Rendering message:', index);
-        console.log('🔵 Message type:', message.messageType);
-        console.log('🔵 Quick actions:', message.quickActions);
-
         return (
             <View key={index}>
                 {/* User Message */}
@@ -62,7 +57,7 @@ export default function ChatScreen() {
                             timestamp={message.timestamp}
                         />
 
-                        {/* ✅ HIỂN THỊ PRODUCT LIST VỚI ACTIONS */}
+                        {/* Product List */}
                         {message.messageType === 'PRODUCT_LIST' &&
                             message.actionData?.products && (
                                 <ProductListMessage
@@ -94,31 +89,18 @@ export default function ChatScreen() {
                         {/* Quick Actions */}
                         {message.quickActions && message.quickActions.length > 0 && (
                             <View style={styles.quickActionsContainer}>
-                                {/* ✅ THÊM DEBUG UI */}
-                                <Text style={{
-                                    color: 'red',
-                                    padding: 10,
-                                    backgroundColor: 'yellow',
-                                    fontWeight: 'bold'
-                                }}>
-                                    🔍 DEBUG: {message.quickActions.length} quick actions
-                                </Text>
-
                                 <ScrollView
                                     horizontal
                                     showsHorizontalScrollIndicator={false}
                                     contentContainerStyle={styles.quickActionsContent}
                                 >
-                                    {message.quickActions.map((action: any, idx: number) => {
-                                        console.log(`🔵 Rendering quick action ${idx}:`, action);
-                                        return (
-                                            <QuickActionButton
-                                                key={idx}
-                                                action={action}
-                                                onPress={handleQuickAction}
-                                            />
-                                        );
-                                    })}
+                                    {message.quickActions.map((action: any, idx: number) => (
+                                        <QuickActionButton
+                                            key={idx}
+                                            action={action}
+                                            onPress={handleQuickAction}
+                                        />
+                                    ))}
                                 </ScrollView>
                             </View>
                         )}

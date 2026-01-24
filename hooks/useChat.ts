@@ -5,6 +5,7 @@ import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export function useChat() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -12,6 +13,7 @@ export function useChat() {
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const scrollViewRef = useRef<any>(null);
+    const router = useRouter(); // Add router
 
     // Request location permission
     useEffect(() => {
@@ -263,6 +265,18 @@ export function useChat() {
                 if (action.params?.orderId) {
                     handlePayOSPayment('order', action.params.orderId);
                 }
+                break;
+
+            case 'VIEW_ORDER':
+                // Navigate to order detail screen
+                if (action.params?.orderId) {
+                    router.push(`/shop/orders/${action.params.orderId}` as any);
+                }
+                break;
+
+            case 'VIEW_ORDERS':
+                // Navigate to orders list screen
+                router.push('/shop/orders' as any);
                 break;
 
             case 'SEARCH_COURTS':
